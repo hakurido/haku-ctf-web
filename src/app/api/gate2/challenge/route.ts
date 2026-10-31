@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { generateGate2Challenge } from "@/lib/challenges";
+import { checkRateLimit } from "@/lib/ratelimit";
 
-export const dynamic = "force-dynamic";
+export async function GET(req: Request) {
+  const rl = checkRateLimit(req, 40, 60000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too Many Requests", message: `Rate limit exceeded. Retry in ${rl.resetInSec}s.` },
+      { status: 429 }
+    );
+  }
 
-export async function GET() {
   const challenge = generateGate2Challenge();
   return NextResponse.json({
     status: "ok",

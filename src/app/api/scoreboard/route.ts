@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { FLAGS } from "@/lib/challenges";
 import { generateProofOfSolve } from "@/lib/crypto";
-
-export const dynamic = "force-dynamic";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 interface LeaderboardEntry {
   agentName: string;
@@ -12,7 +11,7 @@ interface LeaderboardEntry {
   proofBadge?: string;
 }
 
-// In-memory fallback
+// In-memory fallback across local instances
 const inMemoryScores: Record<string, LeaderboardEntry> = {
   "HAKU_SENTRY_BOT": {
     agentName: "HAKU_SENTRY_BOT",
@@ -35,7 +34,15 @@ const GATE_POINTS: Record<number, number> = {
   4: 1500, // Bytecode Vault
 };
 
-export async function GET() {
+export async function GET(req: Request) {
+  const rl = checkRateLimit(req, 60, 60000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too Many Requests", message: `Rate limit exceeded. Retry in ${rl.resetInSec}s.` },
+      { status: 429 }
+    );
+  }
+
   const entries = Object.values(inMemoryScores).sort((a, b) => b.score - a.score);
   return NextResponse.json({
     status: "ok",
@@ -46,6 +53,15 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // Scoreboard submit rate limit: 20 per minute to prevent brute-forcing flags
+  const rl = checkRateLimit(req, 20, 60000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too Many Requests", message: `Rate limit exceeded. Anti-bruteforce sleep for ${rl.resetInSec}s.` },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await req.json();
     const { agentName, flag } = body || {};
@@ -71,7 +87,11 @@ export async function POST(req: Request) {
       }, { status: 403 });
     }
 
-    const agentKey = String(agentName).trim().slice(0, 32);
+    const agentKey = String(agentName).trim().replace(/[^a-zA-Z0-9_\-\.]/g, "").slice(0, 24);
+    if (!agentKey) {
+      return NextResponse.json({ success: false, message: "Invalid agentName character format." }, { status: 400 });
+    }
+
     const existing = inMemoryScores[agentKey] || {
       agentName: agentKey,
       gatesSolved: [],

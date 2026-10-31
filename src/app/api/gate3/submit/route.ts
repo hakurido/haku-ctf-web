@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { verifyGate3Solution } from "@/lib/challenges";
-
-export const dynamic = "force-dynamic";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
+  const rl = checkRateLimit(req, 40, 60000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too Many Requests", message: `Rate limit exceeded. Retry in ${rl.resetInSec}s.` },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await req.json();
     const { sessionToken, assignment } = body || {};
