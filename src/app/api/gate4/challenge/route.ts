@@ -26,6 +26,7 @@ export async function GET(req: Request) {
         "0x05": "SUB (pops B, A -> pushes ((A - B) & 0xFF))",
         "0x06": "ROTL (pops A, arg: bits -> pushes rotl(A, bits))",
         "0x07": "ASSERT_EQ_POP (pops B, A -> asserts A == B, fails if false)",
+        "0x08": "DUP (duplicates top of stack)",
         "0xFF": "HALT_SUCCESS"
       }
     },

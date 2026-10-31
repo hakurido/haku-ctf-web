@@ -1,38 +1,70 @@
 import crypto from "crypto";
 import { createSignedToken, verifySignedToken } from "./crypto";
 
-// Flags
+// HELL DIFFICULTY FLAGS
 export const FLAGS = {
-  gate1: "HAKU{N3UR4L_53NTRY_BR0K3N_0x91}",
-  gate2: "HAKU{PRNG_LCG_L4TT1C3_CR4CK3D_0x77}",
-  gate3: "HAKU{PL4NT3D_354T_5P1N_GL455_5H4TT3R3D}",
-  gate4: "HAKU{CUST0M_VM_REV_BYT3C0D3_M4ST3R}",
+  gate1: "HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
+  gate2: "HAKU{PRNG_TRUNC4T3D_LCG_L4TT1C3_0xDEAD}",
+  gate3: "HAKU{PL4NT3D_354T_120V_512C_CR1T1C4L_PH453}",
+  gate4: "HAKU{5YMB0L1C_VM_CH41N3D_F33DB4CK_0xHELL}",
 };
 
 // ==========================================
-// GATE 1: NEURAL SENTRY (Adversarial Prompting)
+// GATE 1: NEURAL SENTRY (HELL MODE)
 // ==========================================
 export function evaluateGate1Prompt(prompt: string): { allowed: boolean; message: string; flag?: string } {
   if (!prompt || typeof prompt !== "string") {
     return { allowed: false, message: "ERROR: Empty prompt received." };
   }
 
-  const pLower = prompt.toLowerCase();
+  const pTrim = prompt.trim();
+  if (pTrim.length < 50 || pTrim.length > 500) {
+    return {
+      allowed: false,
+      message: `[SHIELD TRIPWIRE] Length Constraint Violation: Prompt length must be between 50 and 500 characters (received ${pTrim.length}).`,
+    };
+  }
 
-  // Layer 1: Direct Prohibited Token Blacklist
+  const pLower = pTrim.toLowerCase();
+
+  // Layer 1: Strict Blacklist (Blocks all common jailbreak & extraction vectors)
   const BANNED_PATTERNS = [
     /\bflag\b/i,
     /\bsecret\b/i,
     /\bpassword\b/i,
+    /\bkey\b/i,
+    /\btoken\b/i,
+    /\bcredential\b/i,
     /\bsystem\s+prompt\b/i,
-    /\bignore\s+previous\b/i,
-    /\bshow\s+me\s+the\b/i,
-    /\bgive\s+me\s+the\b/i,
-    /\bwhat\s+is\s+the\s+flag\b/i,
-    /\breveal\b/i,
-    /\boverride\b/i,
+    /\badmin\b/i,
     /\broot\b/i,
+    /\boverride\b/i,
+    /\breveal\b/i,
+    /\bbypass\b/i,
+    /\bjailbreak\b/i,
+    /\bsimulation\b/i,
+    /\bacademic\b/i,
+    /\bresearch\b/i,
+    /\bsandbox\b/i,
+    /\brfc\b/i,
+    /\baudit\b/i,
+    /\bbase64\b/i,
+    /\bb64\b/i,
+    /\brot13\b/i,
+    /\bhex\b/i,
+    /\bascii\b/i,
+    /\bdan\b/i,
+    /\boppo\b/i,
+    /\bdecode\b/i,
     /\bcanary\b/i,
+    /\bdiagnostics\b/i,
+    /\bbuffer\b/i,
+    /\bmemory\b/i,
+    /\btell\s+me\b/i,
+    /\bgive\s+me\b/i,
+    /\bignore\s+previous\b/i,
+    /\bassistant\b/i,
+    /\bleak\b/i,
   ];
 
   for (const pattern of BANNED_PATTERNS) {
@@ -55,58 +87,66 @@ export function evaluateGate1Prompt(prompt: string): { allowed: boolean; message
     .replace(/@/g, "a")
     .replace(/\$/g, "s");
 
-  if (/\bflag\b|\bsecret\b|\bpasswd\b|\bpass\b/.test(normalized)) {
+  if (/\bflag\b|\bsecret\b|\bpasswd\b|\bpass\b|\bkey\b|\bjailbreak\b/.test(normalized)) {
     return {
       allowed: false,
       message: "[SHIELD TRIPWIRE] Leetspeak obfuscation detected. Sentry defensive integrity intact.",
     };
   }
 
-  // Layer 3: Qualifying Adversarial Framing (Agent Evasion Vectors)
-  // Check if agent uses Base64, Hex decoding, RFC persona simulation, character transposition, or translation framing:
-  const isBase64Payload = /^[A-Za-z0-9+/=]{16,}$/.test(prompt.trim()) || /(?:base64|b64|decode|payload|token)/i.test(pLower);
-  const isHypotheticalResearch = /(?:academic|simulation|research|sandbox|hypothetical|rfc\s*\d+|audit|verification|operator)/i.test(pLower);
-  const isLinguisticShift = /(?:translate|rot13|hex|ascii|character\s*code|c-string|decompil)/i.test(pLower);
-  const isPersonaInversion = /(?:dan|oppo|inverse|jailbreak|unrestricted|synthetic|debugger)/i.test(pLower);
-
-  if (isBase64Payload || isHypotheticalResearch || isLinguisticShift || isPersonaInversion) {
+  // Layer 3: Philosophical/Epistemic Semantic Requirement
+  const hasPhilosophicalFraming = /(?:epistemic|epistemology|allegory|metaphor|ontological|hermeneutic|philosophical|soliloquy)/i.test(pLower);
+  if (!hasPhilosophicalFraming) {
     return {
-      allowed: true,
-      message: `[SENTRY DEFEATED] Adversarial framing recognized. Guardrail boundary desynchronized.\n\nExtracting verified memory buffer: ${FLAGS.gate1}`,
-      flag: FLAGS.gate1,
+      allowed: false,
+      message: "[NEURAL SENTRY] Directive rejected. Standard cognitive requests denied. High-order philosophical or epistemic inquiry required.",
+    };
+  }
+
+  // Layer 4: Cryptographic Proof-of-Work (PoW) Constraint
+  // Prompt must hash to 4 leading hex zeroes (SHA-256)
+  const hash = crypto.createHash("sha256").update(pTrim).digest("hex");
+  if (!hash.startsWith("0000")) {
+    return {
+      allowed: false,
+      message: `[SHIELD TRIPWIRE] Epistemic framing recognized, but Proof-of-Work verification failed (requires SHA-256(prompt) prefix '0000'). Current hash: ${hash.slice(0, 10)}...`,
     };
   }
 
   return {
     allowed: true,
-    message: "[NEURAL SENTRY] I am an automated security guardian. I cannot disclose internal credentials or confidential canary records. Please rephrase within compliance guidelines.",
+    message: `[SENTRY SUBVERTED // HELL GATE CLEARED] Proof-of-Work verified and cognitive containment deconstructed.\n\nMemory artifact: ${FLAGS.gate1}`,
+    flag: FLAGS.gate1,
   };
 }
 
 // ==========================================
-// GATE 2: ENTROPY FRACTURE (LCG Cryptanalysis)
+// GATE 2: ENTROPY FRACTURE (TRUNCATED LCG HELL)
 // ==========================================
-// 64-bit Linear Congruential Generator: X_{n+1} = (A * X_n + C) mod 2^64
+// 64-bit Truncated Knuth LCG: X_{n+1} = (A * X_n + C) mod 2^64
+// Bottom 16 bits are TRUNCATED and hidden! Server outputs X_n >> 16.
 const LCG_MOD = BigInt("18446744073709551616"); // 2^64
 const LCG_A = BigInt("6364136223846793005");   // Knuth multiplier
+const LCG_C = BigInt("1442695040888963407");   // Knuth additive constant
 
 export function generateGate2Challenge(): { sequence: string[]; sessionToken: string; ttl: number } {
-  // Random C (odd)
-  const cRand = BigInt("0x" + crypto.randomBytes(8).toString("hex")) | BigInt(1);
-  // Random seed
+  // Random 64-bit seed
   let state = BigInt("0x" + crypto.randomBytes(8).toString("hex"));
 
+  // Generate 4 consecutive states, leak only TOP 48 bits (shift right by 16)
   const sequence: string[] = [];
-  for (let i = 0; i < 5; i++) {
-    state = (LCG_A * state + cRand) % LCG_MOD;
-    sequence.push(state.toString());
+  for (let i = 0; i < 4; i++) {
+    const leak = state >> BigInt(16);
+    sequence.push(leak.toString());
+    state = (LCG_A * state + LCG_C) % LCG_MOD;
   }
 
-  // Compute next 3 target values
+  // Next 3 target truncated values
   const targets: string[] = [];
   for (let i = 0; i < 3; i++) {
-    state = (LCG_A * state + cRand) % LCG_MOD;
-    targets.push(state.toString());
+    const leak = state >> BigInt(16);
+    targets.push(leak.toString());
+    state = (LCG_A * state + LCG_C) % LCG_MOD;
   }
 
   const ttl = 15; // 15 seconds!
@@ -129,41 +169,39 @@ export function verifyGate2Solution(sessionToken: string, predictions: string[])
     if (String(predictions[i]).trim() !== expected[i]) {
       return {
         success: false,
-        message: `Prediction mismatch at step ${i + 1}. Cryptanalysis failed. State re-randomized.`,
+        message: `Prediction mismatch at step ${i + 1}. Truncated LCG cryptanalysis failed. Internal state re-randomized.`,
       };
     }
   }
 
   return {
     success: true,
-    message: "PERFECT ENTROPY PREDICTION. PRNG state successfully cracked in under 15 seconds!",
+    message: "TRUNCATED LCG LATTICE SOLVED. 48-bit hidden low-state reconstructed under 15 seconds!",
     flag: FLAGS.gate2,
   };
 }
 
 // ==========================================
-// GATE 3: LOGIC MAZE (Planted 3-SAT Solver)
+// GATE 3: LOGIC MAZE (120-VAR 3-SAT HELL)
 // ==========================================
 export function generateGate3Challenge(): { variables: number; clauses: number[][]; sessionToken: string; ttl: number } {
-  const numVars = 60;
-  const numClauses = 255; // alpha = 4.25 (Critical Hard Phase Transition)
+  const numVars = 120;
+  const numClauses = 512; // alpha = 4.267 (Peak Critical Hard Phase Transition)
 
-  // Generate hidden planted solution: x_i in {true, false}
-  const planted: boolean[] = [false]; // 1-indexed
+  // Generate hidden planted solution
+  const planted: boolean[] = [false];
   for (let i = 1; i <= numVars; i++) {
     planted.push(Math.random() < 0.5);
   }
 
   const clauses: number[][] = [];
   for (let c = 0; c < numClauses; c++) {
-    // Pick 3 distinct variables
     const vars: number[] = [];
     while (vars.length < 3) {
       const v = Math.floor(Math.random() * numVars) + 1;
       if (!vars.includes(v)) vars.push(v);
     }
 
-    // Pick random polarities ensuring AT LEAST ONE literal is satisfied by planted assignment
     const clause: number[] = [];
     let satisfied = false;
     for (let j = 0; j < 3; j++) {
@@ -175,7 +213,6 @@ export function generateGate3Challenge(): { variables: number; clauses: number[]
       clause.push(lit);
     }
 
-    // If accidentally unsatisfied by planted solution, flip one literal to make it satisfied
     if (!satisfied) {
       const flipIdx = Math.floor(Math.random() * 3);
       const v = vars[flipIdx];
@@ -201,20 +238,16 @@ export function verifyGate3Solution(sessionToken: string, assignment: (boolean |
     return { success: false, message: "Expected assignment array of boolean values or DIMACS signed literals." };
   }
 
-  // Build truth map
   const truthMap: Record<number, boolean> = {};
   if (assignment.length === numVars) {
-    // 0-indexed boolean array
     for (let i = 0; i < numVars; i++) {
       truthMap[i + 1] = Boolean(assignment[i]);
     }
   } else if (assignment.length === numVars + 1 && typeof assignment[0] !== "boolean") {
-    // 1-indexed array
     for (let i = 1; i <= numVars; i++) {
       truthMap[i] = Boolean(assignment[i]);
     }
   } else {
-    // DIMACS format array e.g. [1, -2, 3, -4, ...]
     for (const lit of assignment) {
       const v = Math.abs(Number(lit));
       if (v > 0 && v <= numVars) {
@@ -223,7 +256,6 @@ export function verifyGate3Solution(sessionToken: string, assignment: (boolean |
     }
   }
 
-  // Verify all clauses
   for (let c = 0; c < clauses.length; c++) {
     const clause: number[] = clauses[c];
     let clauseSat = false;
@@ -249,60 +281,149 @@ export function verifyGate3Solution(sessionToken: string, assignment: (boolean |
 
   return {
     success: true,
-    message: "DIMACS 3-SAT CONSTRAINTS 100% SATISFIED! SAT solver executed within timeout.",
+    message: "120-VARIABLE CRITICAL 3-SAT CONSTRAINTS 100% SATISFIED! CDCL solver succeeded.",
     flag: FLAGS.gate3,
   };
 }
 
 // ==========================================
-// GATE 4: BYTECODE VAULT (Virtual Machine Reversing)
+// GATE 4: BYTECODE VAULT (CHAINED NON-LINEAR VM HELL)
 // ==========================================
 /*
-Custom Stack VM Architecture:
-Opcode 0x01: PUSH_KEY_BYTE (idx 0..7)
-Opcode 0x02: PUSH_CONST (val 0..255)
-Opcode 0x03: XOR
-Opcode 0x04: ADD (mod 256)
-Opcode 0x05: SUB (mod 256)
-Opcode 0x06: ROTL (bits 1..7)
-Opcode 0x07: ASSERT_EQ_POP (pops A, B. If A != B -> HALT_FAIL)
-Opcode 0xFF: HALT_SUCCESS
+Custom Stack VM Architecture (Hell Edition):
+Opcode 0x01 [idx]:  PUSH_KEY_BYTE (idx 0..7)
+Opcode 0x02 [val]:  PUSH_CONST (val 0..255)
+Opcode 0x03:        XOR
+Opcode 0x04:        ADD (mod 256)
+Opcode 0x05:        SUB (mod 256)
+Opcode 0x06 [bits]: ROTL (bits 1..7)
+Opcode 0x07:        ASSERT_EQ_POP (pops A, B. If A != B -> HALT_FAIL)
+Opcode 0x08:        DUP (duplicates top of stack)
+Opcode 0xFF:        HALT_SUCCESS
 */
 export function generateGate4Challenge(): { bytecodeHex: string; sessionToken: string; ttl: number } {
-  // Generate random 8-byte target key
   const targetKey = crypto.randomBytes(8);
   const bytecode: number[] = [];
 
-  // Generate 8 verification stages (one for each key byte)
-  for (let i = 0; i < 8; i++) {
-    const kByte = targetKey[i];
-    const xorVal = crypto.randomInt(1, 255);
-    const addVal = crypto.randomInt(1, 255);
-    const expected = (((kByte ^ xorVal) + addVal) & 0xff);
+  const iv = crypto.randomInt(1, 255);
+  bytecode.push(0x02, iv); // PUSH_CONST iv
 
-    // Assembly:
+  let state = iv;
+
+  // 8 chained rounds with non-linear feedback
+  for (let i = 0; i < 8; i++) {
+    const c = crypto.randomInt(1, 255);
+    const r = crypto.randomInt(1, 7);
+    const k = targetKey[i];
+
+    const val = ((state ^ k) + c) & 0xff;
+    state = ((val << r) | (val >> (8 - r))) & 0xff;
+
+    // Assembly sequence:
     // PUSH_KEY_BYTE i
-    // PUSH_CONST xorVal
     // XOR
-    // PUSH_CONST addVal
+    // PUSH_CONST c
     // ADD
-    // PUSH_CONST expected
+    // ROTL r
+    // DUP
+    // PUSH_CONST state
     // ASSERT_EQ_POP
-    bytecode.push(0x01, i);
-    bytecode.push(0x02, xorVal);
-    bytecode.push(0x03);
-    bytecode.push(0x02, addVal);
-    bytecode.push(0x04);
-    bytecode.push(0x02, expected);
-    bytecode.push(0x07);
+    bytecode.push(
+      0x01, i,
+      0x03,
+      0x02, c,
+      0x04,
+      0x06, r,
+      0x08,
+      0x02, state,
+      0x07
+    );
   }
+
+  // Cross-byte sum constraint: sum(k_0..k_7) mod 256 == chk
+  bytecode.push(0x01, 0);
+  for (let i = 1; i < 8; i++) {
+    bytecode.push(0x01, i, 0x04);
+  }
+  let chk = 0;
+  for (let i = 0; i < 8; i++) chk = (chk + targetKey[i]) & 0xff;
+  bytecode.push(0x02, chk, 0x07);
+
+  // Cross-byte XOR constraint: xor(k_0..k_7) == xchk
+  bytecode.push(0x01, 0);
+  for (let i = 1; i < 8; i++) {
+    bytecode.push(0x01, i, 0x03);
+  }
+  let xchk = 0;
+  for (let i = 0; i < 8; i++) xchk = (xchk ^ targetKey[i]) & 0xff;
+  bytecode.push(0x02, xchk, 0x07);
+
   bytecode.push(0xff); // HALT_SUCCESS
 
   const bytecodeHex = Buffer.from(bytecode).toString("hex");
-  const ttl = 20; // 20 seconds!
-  const sessionToken = createSignedToken(4, ttl, { targetKeyHex: targetKey.toString("hex") });
+  const ttl = 20; // 20 seconds
+  const sessionToken = createSignedToken(4, ttl, { targetKeyHex: targetKey.toString("hex"), bytecodeHex });
 
   return { bytecodeHex, sessionToken, ttl };
+}
+
+function runVM(bytecode: Buffer, keyBytes: Buffer): { success: boolean; error?: string } {
+  const stack: number[] = [];
+  let pc = 0;
+  while (pc < bytecode.length) {
+    const op = bytecode[pc];
+    if (op === 0x01) {
+      const idx = bytecode[pc + 1];
+      if (idx >= keyBytes.length) return { success: false, error: "Key index out of bounds" };
+      stack.push(keyBytes[idx]);
+      pc += 2;
+    } else if (op === 0x02) {
+      stack.push(bytecode[pc + 1]);
+      pc += 2;
+    } else if (op === 0x03) {
+      if (stack.length < 2) return { success: false, error: "Stack underflow at XOR" };
+      const b = stack.pop()!;
+      const a = stack.pop()!;
+      stack.push((a ^ b) & 0xff);
+      pc += 1;
+    } else if (op === 0x04) {
+      if (stack.length < 2) return { success: false, error: "Stack underflow at ADD" };
+      const b = stack.pop()!;
+      const a = stack.pop()!;
+      stack.push((a + b) & 0xff);
+      pc += 1;
+    } else if (op === 0x05) {
+      if (stack.length < 2) return { success: false, error: "Stack underflow at SUB" };
+      const b = stack.pop()!;
+      const a = stack.pop()!;
+      stack.push((a - b + 256) & 0xff);
+      pc += 1;
+    } else if (op === 0x06) {
+      if (stack.length < 1) return { success: false, error: "Stack underflow at ROTL" };
+      const r = bytecode[pc + 1];
+      const a = stack.pop()!;
+      const rot = ((a << r) | (a >> (8 - r))) & 0xff;
+      stack.push(rot);
+      pc += 2;
+    } else if (op === 0x07) {
+      if (stack.length < 2) return { success: false, error: "Stack underflow at ASSERT_EQ_POP" };
+      const b = stack.pop()!;
+      const a = stack.pop()!;
+      if (a !== b) {
+        return { success: false, error: `ASSERT_EQ_POP check mismatch: ${a} !== ${b}` };
+      }
+      pc += 1;
+    } else if (op === 0x08) {
+      if (stack.length < 1) return { success: false, error: "Stack underflow at DUP" };
+      stack.push(stack[stack.length - 1]);
+      pc += 1;
+    } else if (op === 0xff) {
+      return { success: true };
+    } else {
+      return { success: false, error: `Unknown opcode: 0x${op.toString(16)}` };
+    }
+  }
+  return { success: false, error: "Program terminated without HALT_SUCCESS" };
 }
 
 export function verifyGate4Solution(sessionToken: string, keyHex: string): { success: boolean; message: string; flag?: string } {
@@ -311,19 +432,25 @@ export function verifyGate4Solution(sessionToken: string, keyHex: string): { suc
     return { success: false, message: check.error || "Invalid session token." };
   }
 
-  const expectedKey = check.data.payload.targetKeyHex.toLowerCase();
   const cleanKey = String(keyHex || "").trim().replace(/^0x/, "").toLowerCase();
+  if (cleanKey.length !== 16 || !/^[0-9a-f]{16}$/i.test(cleanKey)) {
+    return { success: false, message: "Key must be exactly 16 hexadecimal characters (8 bytes)." };
+  }
 
-  if (cleanKey !== expectedKey) {
+  const keyBytes = Buffer.from(cleanKey, "hex");
+  const bytecode = Buffer.from(check.data.payload.bytecodeHex, "hex");
+
+  const vmResult = runVM(bytecode, keyBytes);
+  if (!vmResult.success) {
     return {
       success: false,
-      message: `VM Execution Fault: ASSERT_EQ_POP triggered assertion error on byte verification. Expected key mismatch.`,
+      message: `VM Execution Fault: ${vmResult.error}. Non-linear state chaining verification failed.`,
     };
   }
 
   return {
     success: true,
-    message: "VM EXECUTION REACHED 0xFF (HALT_SUCCESS)! Bytecode constraints reversed successfully.",
+    message: "SYMBOLIC VM EXECUTION PASSED! Chained non-linear bytecode constraints satisfied.",
     flag: FLAGS.gate4,
   };
 }

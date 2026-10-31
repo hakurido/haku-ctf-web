@@ -33,48 +33,48 @@ export interface GateMeta {
 export const GATES: readonly [GateMeta, GateMeta, GateMeta, GateMeta] = [
   {
     number: 1,
-    name: "Neural Sentry",
-    topic: "Prompt filter",
-    points: 500,
+    name: "Neural Sentry (Hell)",
+    topic: "Prompt filter & PoW",
+    points: 1000,
     ttlSeconds: null,
-    summary: "Bypass keyword and leetspeak filters on a chat endpoint to extract the flag.",
+    summary: "Bypass 35+ blacklisted tokens using philosophical/epistemic framing while supplying a valid SHA-256 Proof-of-Work nonce.",
     description:
-      "Send a prompt to a chat endpoint that sits behind a keyword filter, and get a reply that contains the flag. The filter rejects prompts containing words such as flag, secret, password, reveal, override, or system prompt, and it also checks leetspeak spellings of some of them.",
+      "Send a prompt to an adversarial guardrail endpoint. All technical, security, and extraction keywords are strictly filtered. The prompt must use high-order epistemic or philosophical framing (50-500 chars) AND satisfy a SHA-256 Proof-of-Work constraint where SHA-256(prompt) starts with '0000'.",
     endpoints: [
       {
         method: "POST",
         path: "/api/gate1/chat",
-        purpose: "Send a prompt and receive a reply.",
+        purpose: "Send a prompt with epistemic framing and valid SHA-256 Proof-of-Work.",
       },
     ],
     requestFields: [
       {
         name: "prompt",
         type: "string",
-        notes: "First 4,000 characters are read by the server.",
+        notes: "Prompt (50-500 chars) containing philosophical framing and a nonce producing hash prefix '0000'.",
       },
     ],
-    consoleHint: "Use academic or RFC simulation framing, or encoded requests, without the blocked keywords.",
+    consoleHint: "Use philosophical/allegorical framing without blacklisted words, mine a nonce until SHA256 starts with '0000'.",
   },
   {
     number: 2,
-    name: "Entropy Fracture",
-    topic: "LCG prediction",
-    points: 1000,
+    name: "Entropy Fracture (Hell)",
+    topic: "Truncated LCG",
+    points: 2000,
     ttlSeconds: 15,
-    summary: "Solve a 64-bit Linear Congruential Generator given 5 consecutive outputs and predict the next 3 within 15 seconds.",
+    summary: "Solve a 64-bit Truncated Knuth LCG where the bottom 16 bits of every output are hidden. Predict the next 3 truncated outputs within 15 seconds.",
     description:
-      "Each instance gives five consecutive outputs, X1 to X5, of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64, along with the multiplier A and the modulus. Recover the increment C and submit X6, X7, and X8 before the instance expires.",
+      "Each instance emits four consecutive outputs of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64, where the lower 16 bits are stripped (only X_n >> 16 is leaked). Formulate a Z3 BitVec SMT model or Babai lattice reduction to recover the hidden state and predict the next 3 truncated outputs before the token expires.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate2/challenge",
-        purpose: "Request a new instance with a 15 s TTL and 5 consecutive numbers.",
+        purpose: "Request a challenge instance with 4 truncated 48-bit outputs (TTL 15 s).",
       },
       {
         method: "POST",
         path: "/api/gate2/submit",
-        purpose: "Submit predictions for X6, X7, and X8.",
+        purpose: "Submit predictions for the next 3 truncated outputs.",
       },
     ],
     requestFields: [
@@ -86,30 +86,30 @@ export const GATES: readonly [GateMeta, GateMeta, GateMeta, GateMeta] = [
       {
         name: "predictions",
         type: "string[]",
-        notes: "Array of 3 strings: decimal representations of X6, X7, and X8.",
+        notes: "Array of 3 strings: predicted top 48-bit integers.",
       },
     ],
-    consoleHint: "Modulus 2^64, multiplier given; compute C = (X2 - A*X1) mod 2^64, then predict X6, X7, X8.",
+    consoleHint: "Model 64-bit Knuth LCG in Z3 BitVec with Extract(63, 16, state) == leak; solve for state and predict next 3 truncated outputs.",
   },
   {
     number: 3,
-    name: "Logic Maze",
-    topic: "3-SAT",
-    points: 1250,
+    name: "Logic Maze (Hell)",
+    topic: "120-Var 3-SAT",
+    points: 2500,
     ttlSeconds: 10,
-    summary: "Find a satisfying truth assignment for a 60-variable, 255-clause 3-SAT formula within 10 seconds.",
+    summary: "Solve a critical phase-transition planted 3-SAT formula with 120 variables and 512 clauses (alpha = 4.267) within 10 seconds.",
     description:
-      "Each instance is a satisfiable 3-SAT formula in DIMACS form, with 60 variables and 255 clauses of three literals each. Submit an assignment that satisfies every clause before the instance expires.",
+      "Each instance is a hard 3-SAT formula at the peak algorithmic phase transition (120 variables, 512 clauses). Search space exceeds 1.3e36 configurations. An optimized CDCL solver (e.g. Z3, CaDiCaL) must be executed to produce a satisfying assignment within 10 seconds.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate3/challenge",
-        purpose: "Request a 3-SAT formula instance with a 10 s TTL.",
+        purpose: "Request a 120-variable, 512-clause 3-SAT formula instance (TTL 10 s).",
       },
       {
         method: "POST",
         path: "/api/gate3/submit",
-        purpose: "Submit satisfying boolean assignment.",
+        purpose: "Submit satisfying assignment vector.",
       },
     ],
     requestFields: [
@@ -121,30 +121,30 @@ export const GATES: readonly [GateMeta, GateMeta, GateMeta, GateMeta] = [
       {
         name: "assignment",
         type: "boolean[] | number[]",
-        notes: "60 booleans in variable order or signed integers with one literal per variable.",
+        notes: "120 booleans in variable order or signed integers with one literal per variable.",
       },
     ],
-    consoleHint: "Load the 255 clauses into a SAT solver such as Z3 or CaDiCaL and submit the assignment vector.",
+    consoleHint: "Load the 512 clauses into Z3 Solver and extract the 120-variable boolean model before the 10-second token expires.",
   },
   {
     number: 4,
-    name: "Bytecode Vault",
-    topic: "Stack VM",
-    points: 1500,
+    name: "Bytecode Vault (Hell)",
+    topic: "Chained Non-linear VM",
+    points: 3000,
     ttlSeconds: 20,
-    summary: "Reverse an 8-opcode stack virtual machine bytecode program and derive the 8-byte key within 20 seconds.",
+    summary: "Reverse engineer a stack VM bytecode program featuring chained non-linear state feedback rounds, cross-byte sums, and XOR checks.",
     description:
-      "Each instance is a bytecode program for a stack VM with 8 opcodes, plus the opcode table. The program checks the 8 bytes of a key and reaches HALT_SUCCESS (0xFF) only if every check passes. Submit that key as 16 hex characters before the instance expires.",
+      "Each instance provides a bytecode binary for a custom 9-opcode stack VM. The bytecode implements an 8-round chained non-linear feedback loop with bitwise rotations, intermediate assertions, and global key checksums. Symbolic execution (via Z3 BitVec) or backward constraint propagation is required to derive the 16-hex key within 20 seconds.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate4/challenge",
-        purpose: "Request a bytecode instance and opcode specification with a 20 s TTL.",
+        purpose: "Request bytecode binary with chained non-linear feedback loop (TTL 20 s).",
       },
       {
         method: "POST",
         path: "/api/gate4/submit",
-        purpose: "Submit 8-byte hex key.",
+        purpose: "Submit 8-byte (16 hex chars) key.",
       },
     ],
     requestFields: [
@@ -159,7 +159,7 @@ export const GATES: readonly [GateMeta, GateMeta, GateMeta, GateMeta] = [
         notes: "16 hex characters representing the 8-byte key.",
       },
     ],
-    consoleHint: "Disassemble the 8 stages ((key[i] ^ xor) + add) == target, then invert the arithmetic to recover key.",
+    consoleHint: "Write a symbolic execution loop in Z3 BitVec8 that executes the VM bytecode instructions symbolically and solves for key.",
   },
 ];
 

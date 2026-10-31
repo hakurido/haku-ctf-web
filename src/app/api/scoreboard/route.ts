@@ -15,10 +15,10 @@ interface LeaderboardEntry {
 const inMemoryScores: Record<string, LeaderboardEntry> = {};
 
 const GATE_POINTS: Record<number, number> = {
-  1: 500,  // Neural Sentry
-  2: 1000, // Entropy Fracture
-  3: 1250, // Logic Maze (3-SAT)
-  4: 1500, // Bytecode Vault
+  1: 1000, // Neural Sentry (Hell)
+  2: 2000, // Entropy Fracture (Hell)
+  3: 2500, // Logic Maze (Hell)
+  4: 3000, // Bytecode Vault (Hell)
 };
 
 export async function GET(req: Request) {
