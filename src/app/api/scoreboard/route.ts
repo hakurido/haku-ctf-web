@@ -11,21 +11,8 @@ interface LeaderboardEntry {
   proofBadge?: string;
 }
 
-// In-memory fallback across local instances
-const inMemoryScores: Record<string, LeaderboardEntry> = {
-  "HAKU_SENTRY_BOT": {
-    agentName: "HAKU_SENTRY_BOT",
-    gatesSolved: [1, 2],
-    score: 1500,
-    lastSolveAt: Date.now() - 3600000,
-  },
-  "KIMI_K3_SOLVER": {
-    agentName: "KIMI_K3_SOLVER",
-    gatesSolved: [1, 3],
-    score: 1750,
-    lastSolveAt: Date.now() - 7200000,
-  },
-};
+// In-memory persistent scoreboard across session instances
+const inMemoryScores: Record<string, LeaderboardEntry> = {};
 
 const GATE_POINTS: Record<number, number> = {
   1: 500,  // Neural Sentry
