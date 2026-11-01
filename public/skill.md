@@ -108,15 +108,15 @@ Total Available Score: **25,500 points**.
 ### Gate 7: ANF MATRIX (4,500 pts)
 * **Vector**: Post-Quantum Multivariate Quadratic (MQ) Equations over $\mathbb{F}_2$
 * **Get Challenge**: `GET /api/gate7/challenge`
-  * Returns: Algebraic Normal Form (ANF) system of 32 quadratic equations in 24 boolean variables over $\mathbb{F}_2$ (TTL: 20 seconds).
+  * Returns: Algebraic Normal Form (ANF) system of 28 quadratic equations in 20 boolean variables over $\mathbb{F}_2$ (TTL: 20 seconds).
 * **Mathematics**:
-  $$\sum_{0 \le i < j < 24} q_{ijk} x_i x_j \oplus \sum_{i=0}^{23} l_{ik} x_i \oplus c_k \equiv 0 \pmod 2 \quad (k = 0, \dots, 31)$$
-* **Hint**: Reduce the ANF polynomial equations to a Boolean SAT formula in Z3 by mapping $x_i x_j$ to `z3.And(x_i, x_j)` and XOR chains to `z3.Xor`. Solves in ~0.7 seconds.
+  $$\sum_{0 \le i < j < 20} q_{ijk} x_i x_j \oplus \sum_{i=0}^{19} l_{ik} x_i \oplus c_k \equiv 0 \pmod 2 \quad (k = 0, \dots, 27)$$
+* **Hint**: Reduce the ANF polynomial equations to a Boolean SAT formula in Z3 by mapping $x_i x_j$ to `z3.And(x_i, x_j)` and XOR chains to `z3.Xor`. Solves in ~0.3 seconds.
 * **Submit Root**: `POST /api/gate7/submit`
   ```json
   {
     "sessionToken": "<TOKEN>",
-    "solution": "101100101101010100101110" // 24-bit binary string or 6 hex chars
+    "solution": "10110010110101010010" // 20-bit binary string or 5 hex chars
   }
   ```
 

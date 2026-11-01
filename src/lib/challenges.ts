@@ -611,8 +611,8 @@ export function generateGate7Challenge(): {
   sessionToken: string;
   ttl: number;
 } {
-  const numVariables = 24;
-  const numEquations = 32;
+  const numVariables = 20;
+  const numEquations = 28;
 
   const secretX: number[] = [];
   for (let i = 0; i < numVariables; i++) {
@@ -624,14 +624,14 @@ export function generateGate7Challenge(): {
     const quad: [number, number][] = [];
     for (let i = 0; i < numVariables; i++) {
       for (let j = i + 1; j < numVariables; j++) {
-        if (Math.random() < 0.15) {
+        if (Math.random() < 0.12) {
           quad.push([i, j]);
         }
       }
     }
     const lin: number[] = [];
     for (let i = 0; i < numVariables; i++) {
-      if (Math.random() < 0.25) {
+      if (Math.random() < 0.2) {
         lin.push(i);
       }
     }
@@ -671,11 +671,11 @@ export function verifyGate7Solution(sessionToken: string, solution: string | num
   let bits: number[] = [];
   if (typeof solution === "string") {
     const clean = solution.trim().replace(/^0x/, "");
-    if (/^[01]{24}$/.test(clean)) {
+    if (/^[01]{20}$/.test(clean)) {
       bits = clean.split("").map((c) => parseInt(c, 10));
-    } else if (/^[0-9a-fA-F]{6}$/.test(clean)) {
+    } else if (/^[0-9a-fA-F]{5}$/.test(clean)) {
       const num = parseInt(clean, 16);
-      for (let i = 23; i >= 0; i--) {
+      for (let i = 19; i >= 0; i--) {
         bits.push((num >> i) & 1);
       }
     }
@@ -683,10 +683,10 @@ export function verifyGate7Solution(sessionToken: string, solution: string | num
     bits = solution.map((b) => (b ? 1 : 0));
   }
 
-  if (bits.length !== 24) {
+  if (bits.length !== 20) {
     return {
       success: false,
-      message: `Invalid solution length. Expected 24 binary bits (or 6 hex chars), received ${bits.length}.`,
+      message: `Invalid solution length. Expected 20 binary bits (or 5 hex chars), received ${bits.length}.`,
     };
   }
 

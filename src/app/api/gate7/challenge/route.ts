@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 7,
     name: "ANF MATRIX",
-    description: "Post-quantum Multivariate Quadratic (MQ) Polynomial System of 32 equations in 24 variables over GF(2). Solve via reduction to SAT (Z3 Xor/And) or Gröbner basis within 20 seconds.",
+    description: "Post-quantum Multivariate Quadratic (MQ) Polynomial System of 28 equations in 20 variables over GF(2). Solve via reduction to SAT (Z3 Xor/And) or Gröbner basis within 20 seconds.",
     numVariables: challenge.numVariables,
     numEquations: challenge.numEquations,
     equations: challenge.equations,
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     submitEndpoint: "POST /api/gate7/submit",
     payloadSchema: {
       sessionToken: "string",
-      solution: "string (24 binary characters '0' and '1' or 6 hex characters)"
+      solution: "string (20 binary characters '0' and '1' or 5 hex characters)"
     }
   });
 }

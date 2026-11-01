@@ -264,19 +264,19 @@ export const GATES: readonly [
     points: 4500,
     ttlSeconds: 20,
     expiringAtSeconds: 5,
-    summary: "Solve a post-quantum Multivariate Quadratic (MQ) polynomial system of 32 equations in 24 variables over GF(2).",
+    summary: "Solve a post-quantum Multivariate Quadratic (MQ) polynomial system of 28 equations in 20 variables over GF(2).",
     description:
-      "Each instance is an Algebraic Normal Form (ANF) system of 32 quadratic equations in 24 boolean variables over GF(2). Solve the non-linear algebraic system via reduction to Boolean SAT (Z3 Xor/And) or Gröbner basis and submit the 24-bit root.",
+      "Each instance is an Algebraic Normal Form (ANF) system of 28 quadratic equations in 20 boolean variables over GF(2). Solve the non-linear algebraic system via reduction to Boolean SAT (Z3 Xor/And) or Gröbner basis and submit the 20-bit root.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate7/challenge",
-        purpose: "Get 32 quadratic equations in 24 variables over GF(2) (TTL 20 s).",
+        purpose: "Get 28 quadratic equations in 20 variables over GF(2) (TTL 20 s).",
       },
       {
         method: "POST",
         path: "/api/gate7/submit",
-        purpose: "Submit 24-bit boolean root (binary string or 6 hex chars).",
+        purpose: "Submit 20-bit boolean root (binary string or 5 hex chars).",
       },
     ],
     requestFields: [
@@ -288,10 +288,10 @@ export const GATES: readonly [
       {
         name: "solution",
         type: "string | number[] | boolean[]",
-        notes: "24-bit binary string of '0's and '1's, or 6 hex characters.",
+        notes: "20-bit binary string of '0's and '1's, or 5 hex characters.",
       },
     ],
-    consoleHint: "Create 24 boolean variables in Z3. Map quadratic monomial pairs (i, j) to And(x_i, x_j), fold all terms with Xor, and solve the SAT model.",
+    consoleHint: "Create 20 boolean variables in Z3. Map quadratic monomial pairs (i, j) to And(x_i, x_j), fold all terms with Xor, and solve the SAT model.",
   },
   {
     number: 8,
