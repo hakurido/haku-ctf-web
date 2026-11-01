@@ -28,7 +28,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 2,
     name: "Entropy Fracture",
     points: 2000,
-    ttlSeconds: 25,
+    ttlSeconds: 30,
     endpoints: [
       { method: "GET", path: "/api/gate2/challenge" },
       { method: "POST", path: "/api/gate2/submit" },
@@ -94,7 +94,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 8,
     name: "Chrono Apex",
     points: 5000,
-    ttlSeconds: 20,
+    ttlSeconds: 25,
     endpoints: [
       { method: "GET", path: "/api/gate8/challenge" },
       { method: "POST", path: "/api/gate8/submit" },
@@ -109,7 +109,7 @@ export const INSTANCE_BASELINE = Object.freeze({
   gate2: {
     sequenceLength: 4,
     predictions: 3,
-    truncationBits: 24,
+    truncationBits: 20,
     multiplier: "6364136223846793005",
     increment: "1442695040888963407",
     modulus: "18446744073709551616",

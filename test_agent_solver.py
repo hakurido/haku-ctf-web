@@ -35,7 +35,7 @@ def solve_gate1():
     return r.get("flag")
 
 def solve_gate2():
-    print("\n[2/8] Attacking Gate 2: ENTROPY FRACTURE (24-bit Truncated LCG)...")
+    print("\n[2/8] Attacking Gate 2: ENTROPY FRACTURE (20-bit Truncated LCG)...")
     chal = requests.get(f"{BASE}/api/gate2/challenge", headers=HEADERS).json()
     leaks = [int(x) for x in chal["sequence"]]
     token = chal["sessionToken"]
@@ -49,7 +49,7 @@ def solve_gate2():
     s0 = z3.BitVec("s0", 64)
     curr = s0
     for i in range(len(leaks)):
-        solver.add(z3.Extract(63, 24, curr) == leaks[i])
+        solver.add(z3.Extract(63, 20, curr) == leaks[i])
         curr = (z3.BitVecVal(A, 64) * curr) + z3.BitVecVal(C, 64)
         
     if solver.check() != z3.sat:
@@ -65,7 +65,7 @@ def solve_gate2():
         
     preds = []
     for _ in range(3):
-        preds.append(str(state >> 24))
+        preds.append(str(state >> 20))
         state = (A * state + C) % MOD
         
     sub = requests.post(f"{BASE}/api/gate2/submit", headers=HEADERS, json={"sessionToken": token, "predictions": preds}).json()

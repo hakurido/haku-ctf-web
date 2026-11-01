@@ -80,18 +80,18 @@ export const GATES: readonly [
   {
     number: 2,
     name: "Entropy Fracture",
-    topic: "24-bit Truncated LCG",
+    topic: "20-bit Truncated LCG",
     points: 2000,
-    ttlSeconds: 25,
+    ttlSeconds: 30,
     expiringAtSeconds: 5,
-    summary: "Solve a 64-bit Truncated Knuth LCG where the bottom 24 bits are stripped. Predict the next 3 outputs.",
+    summary: "Solve a 64-bit Truncated Knuth LCG where the bottom 20 bits are stripped. Predict the next 3 outputs.",
     description:
-      "Each instance emits four consecutive outputs of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64, where the lower 24 bits are stripped (only X >> 24 is leaked). Recover the 64-bit seed from a search space of 16.7M hidden lower states using Z3 BitVec64 and predict the next three truncated outputs before timeout.",
+      "Each instance emits four consecutive outputs of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64, where the lower 20 bits are stripped (only X >> 20 is leaked). Recover the 64-bit seed from a search space of 1.05M hidden lower states using Z3 BitVec64 and predict the next three truncated outputs before timeout.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate2/challenge",
-        purpose: "Get challenge with four 40-bit truncated outputs (TTL 25 s).",
+        purpose: "Get challenge with four 44-bit truncated outputs (TTL 30 s).",
       },
       {
         method: "POST",
@@ -108,10 +108,10 @@ export const GATES: readonly [
       {
         name: "predictions",
         type: "[string, string, string]",
-        notes: "X5, X6, and X7 as decimal integers (the top 40 bits of each state).",
+        notes: "X5, X6, and X7 as decimal integers (the top 44 bits of each state).",
       },
     ],
-    consoleHint: "Model 64-bit Knuth LCG in Z3 BitVec with Extract(63, 24, state) == leak (hiding 24 bits, up from 16); solve for state and predict next 3 truncated outputs.",
+    consoleHint: "Model 64-bit Knuth LCG in Z3 BitVec with Extract(63, 20, state) == leak (hiding 20 bits, up from 16); solve for state and predict next 3 truncated outputs.",
   },
   {
     number: 3,
@@ -298,7 +298,7 @@ export const GATES: readonly [
     name: "Chrono Apex",
     topic: "64-bit Berlekamp-Massey LFSR",
     points: 5000,
-    ttlSeconds: 20,
+    ttlSeconds: 25,
     expiringAtSeconds: 5,
     summary: "Synthesize the minimal feedback polynomial of an unknown 64-bit LFSR from 128 keystream bits and predict the next 64 bits.",
     description:

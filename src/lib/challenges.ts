@@ -134,22 +134,22 @@ const LCG_C = BigInt("1442695040888963407");   // Knuth additive constant
 export function generateGate2Challenge(): { sequence: string[]; sessionToken: string; ttl: number } {
   let state = BigInt("0x" + crypto.randomBytes(8).toString("hex"));
 
-  // Lower 24 bits are hidden; leak only top 40 bits (X >> 24)
+  // Lower 20 bits are hidden; leak only top 44 bits (X >> 20)
   const sequence: string[] = [];
   for (let i = 0; i < 4; i++) {
-    const leak = state >> BigInt(24);
+    const leak = state >> BigInt(20);
     sequence.push(leak.toString());
     state = (LCG_A * state + LCG_C) % LCG_MOD;
   }
 
   const targets: string[] = [];
   for (let i = 0; i < 3; i++) {
-    const leak = state >> BigInt(24);
+    const leak = state >> BigInt(20);
     targets.push(leak.toString());
     state = (LCG_A * state + LCG_C) % LCG_MOD;
   }
 
-  const ttl = 25;
+  const ttl = 30;
   const sessionToken = createSignedToken(2, ttl, { targets });
   return { sequence, sessionToken, ttl };
 }
@@ -169,14 +169,14 @@ export function verifyGate2Solution(sessionToken: string, predictions: string[])
     if (String(predictions[i]).trim() !== expected[i]) {
       return {
         success: false,
-        message: `Prediction mismatch at step ${i + 1}. 24-bit Truncated LCG cryptanalysis failed. Internal state re-randomized.`,
+        message: `Prediction mismatch at step ${i + 1}. 20-bit Truncated LCG cryptanalysis failed. Internal state re-randomized.`,
       };
     }
   }
 
   return {
     success: true,
-    message: "24-BIT TRUNCATED LCG RESOLVED! 16.7M hidden lower state reconstructed via SMT BitVec.",
+    message: "20-BIT TRUNCATED LCG RESOLVED! 1.05M hidden lower state reconstructed via SMT BitVec.",
     flag: FLAGS.gate2,
   };
 }
@@ -726,46 +726,88 @@ export function verifyGate7Solution(sessionToken: string, solution: string | num
 // ==========================================
 // GATE 8: CHRONO APEX (64-BIT BERLEKAMP-MASSEY LFSR)
 // ==========================================
+function berlekampMasseyCheck(s: number[]): number[] {
+  const n = s.length;
+  let c = new Array(n).fill(0);
+  let b = new Array(n).fill(0);
+  c[0] = 1; b[0] = 1;
+  let l = 0, m = 1;
+  for (let i = 0; i < n; i++) {
+    let d = s[i];
+    for (let j = 1; j <= l; j++) d ^= (c[j] & s[i - j]);
+    if (d === 1) {
+      const t = [...c];
+      for (let j = 0; j < n - i + m - 1; j++) {
+        if (j + i - m < n) c[j + i - m] ^= b[j];
+      }
+      if (2 * l <= i) {
+        l = i + 1 - l;
+        b = t;
+        m = i;
+      }
+    }
+  }
+  return c.slice(0, l + 1);
+}
+
 export function generateGate8Challenge(): {
   degree: number;
   observedBits: string;
   sessionToken: string;
   ttl: number;
 } {
-  const degree = 64; // 64-bit LFSR
-  const feedback = [1];
-  for (let i = 1; i < degree; i++) {
-    feedback.push(crypto.randomInt(0, 2));
-  }
-  feedback.push(1);
+  const degree = 64;
 
-  let state: number[] = [];
-  do {
-    state = [];
-    for (let i = 0; i < degree; i++) state.push(crypto.randomInt(0, 2));
-  } while (state.every((x) => x === 0));
-
-  const stream = [...state];
-  for (let i = degree; i < 192; i++) {
-    let bit = 0;
-    for (let j = 1; j <= degree; j++) {
-      bit ^= feedback[j] & stream[i - j];
+  while (true) {
+    const feedback = [1];
+    for (let i = 1; i < degree; i++) {
+      feedback.push(crypto.randomInt(0, 2));
     }
-    stream.push(bit);
+    feedback.push(1);
+
+    let state: number[] = [];
+    do {
+      state = [];
+      for (let i = 0; i < degree; i++) state.push(crypto.randomInt(0, 2));
+    } while (state.every((x) => x === 0));
+
+    const stream = [...state];
+    for (let i = degree; i < 192; i++) {
+      let bit = 0;
+      for (let j = 1; j <= degree; j++) {
+        bit ^= feedback[j] & stream[i - j];
+      }
+      stream.push(bit);
+    }
+
+    const observed = stream.slice(0, 128);
+    const target = stream.slice(128, 192);
+    const poly = berlekampMasseyCheck(observed);
+
+    const pred = [...observed];
+    for (let i = 128; i < 192; i++) {
+      let bit = 0;
+      for (let j = 1; j < poly.length; j++) {
+        bit ^= poly[j] & pred[i - j];
+      }
+      pred.push(bit);
+    }
+
+    const match = pred.slice(128, 192).every((b, idx) => b === target[idx]);
+    if (match) {
+      const observedBits = observed.join("");
+      const targetBits = target.join("");
+      const ttl = 25;
+      const sessionToken = createSignedToken(8, ttl, { targetBits });
+
+      return {
+        degree,
+        observedBits,
+        sessionToken,
+        ttl,
+      };
+    }
   }
-
-  const observedBits = stream.slice(0, 128).join(""); // 2 * 64 bits observed
-  const targetBits = stream.slice(128, 192).join("");  // next 64 bits target
-
-  const ttl = 20;
-  const sessionToken = createSignedToken(8, ttl, { targetBits });
-
-  return {
-    degree,
-    observedBits,
-    sessionToken,
-    ttl,
-  };
 }
 
 export function verifyGate8Solution(sessionToken: string, predictedBits: string): { success: boolean; message: string; flag?: string } {
