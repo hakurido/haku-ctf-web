@@ -27,8 +27,8 @@ export function Gate2Instance({ data, readOnly }: Gate2InstanceProps) {
       <div>
         <h3 className={`${SUBHEADING} mb-1`}>Truncated sequence ({seqLen} outputs)</h3>
         <p className="text-ui text-fg-muted mb-2">
-          Each value is <code className="font-mono text-code-sm text-fg">X(n) &gt;&gt; 16</code>,
-          so the low 16 bits of each state are hidden.
+          Each value is <code className="font-mono text-code-sm text-fg">X(n) &gt;&gt; 24</code>,
+          so the low 24 bits of each state are hidden (16.7M state space).
         </p>
 
         <ol className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">

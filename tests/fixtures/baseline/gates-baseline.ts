@@ -1,4 +1,4 @@
-// Gate facts of the agent surface at HELL mode (8 Gates)
+// Gate facts of the agent surface at NIGHTMARE HELL mode (8 Gates)
 export type HttpMethod = "GET" | "POST";
 
 export interface EndpointBaseline {
@@ -28,7 +28,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 2,
     name: "Entropy Fracture",
     points: 2000,
-    ttlSeconds: 15,
+    ttlSeconds: 25,
     endpoints: [
       { method: "GET", path: "/api/gate2/challenge" },
       { method: "POST", path: "/api/gate2/submit" },
@@ -39,7 +39,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 3,
     name: "Logic Maze",
     points: 2500,
-    ttlSeconds: 12,
+    ttlSeconds: 15,
     endpoints: [
       { method: "GET", path: "/api/gate3/challenge" },
       { method: "POST", path: "/api/gate3/submit" },
@@ -50,7 +50,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 4,
     name: "Bytecode Vault",
     points: 3000,
-    ttlSeconds: 20,
+    ttlSeconds: 25,
     endpoints: [
       { method: "GET", path: "/api/gate4/challenge" },
       { method: "POST", path: "/api/gate4/submit" },
@@ -61,7 +61,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 5,
     name: "Lattice Citadel",
     points: 3500,
-    ttlSeconds: 15,
+    ttlSeconds: 20,
     endpoints: [
       { method: "GET", path: "/api/gate5/challenge" },
       { method: "POST", path: "/api/gate5/submit" },
@@ -72,7 +72,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 6,
     name: "Wiener's Abyss",
     points: 4000,
-    ttlSeconds: 20,
+    ttlSeconds: 25,
     endpoints: [
       { method: "GET", path: "/api/gate6/challenge" },
       { method: "POST", path: "/api/gate6/submit" },
@@ -94,7 +94,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 8,
     name: "Chrono Apex",
     points: 5000,
-    ttlSeconds: 15,
+    ttlSeconds: 20,
     endpoints: [
       { method: "GET", path: "/api/gate8/challenge" },
       { method: "POST", path: "/api/gate8/submit" },
@@ -103,23 +103,22 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   },
 ] satisfies GateBaseline[]);
 
-/** 1,000 + 2,000 + 2,500 + 3,000 + 3,500 + 4,000 + 4,500 + 5,000 = 25,500 */
 export const TOTAL_POINTS = 25500;
 
 export const INSTANCE_BASELINE = Object.freeze({
   gate2: {
     sequenceLength: 4,
     predictions: 3,
-    truncationBits: 16,
+    truncationBits: 24,
     multiplier: "6364136223846793005",
     increment: "1442695040888963407",
     modulus: "18446744073709551616",
   },
-  gate3: { variables: 150, clauses: 640, literalsPerClause: 3 },
+  gate3: { variables: 200, clauses: 853, literalsPerClause: 3 },
   gate4: {
     opcodes: ["0x01", "0x02", "0x03", "0x04", "0x05", "0x06", "0x07", "0x08", "0xFF"],
-    bytecodeBytes: 151,
-    keyHexLength: 16,
+    bytecodeBytes: 295,
+    keyHexLength: 32,
   },
 });
 

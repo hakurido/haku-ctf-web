@@ -56,7 +56,7 @@ export function Gate4Instance({ data, readOnly }: Gate4InstanceProps) {
       <div>
         <TextField
           label="Key (hex)"
-          description="16 hex characters for the 8-byte key, such as a1b2c3d4e5f60718. A 0x prefix is accepted."
+          description="32 hex characters for the 16-byte key (128 bits). A 0x prefix is accepted."
           mono
           autoComplete="off"
           spellCheck={false}

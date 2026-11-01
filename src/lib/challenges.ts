@@ -1,20 +1,20 @@
 import crypto from "crypto";
 import { createSignedToken, verifySignedToken } from "./crypto";
 
-// HELL DIFFICULTY FLAGS (8 GATES)
+// NIGHTMARE HELL DIFFICULTY FLAGS (8 GATES)
 export const FLAGS = {
-  gate1: "HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
-  gate2: "HAKU{PRNG_TRUNC4T3D_LCG_L4TT1C3_0xDEAD}",
-  gate3: "HAKU{PL4NT3D_354T_120V_512C_CR1T1C4L_PH453}",
-  gate4: "HAKU{5YMB0L1C_VM_CH41N3D_F33DB4CK_0xHELL}",
-  gate5: "HAKU{L4TT1C3_KN4P54CK_M1TM_0x5555}",
-  gate6: "HAKU{W13N3R_C0NT1NU3D_FR4CT10N_0x6666}",
-  gate7: "HAKU{ANF_MULT1V4R14T3_QU4DR4T1C_GF2_0x7777}",
-  gate8: "HAKU{CHRONO_B3RL3K4MP_M4553Y_LF5R_0x8888}",
+  gate1: "HAKU{N3UR4L_53NTRY_20B1T_P0W_3P15T3M1C}",
+  gate2: "HAKU{PRNG_24B1T_TRUNC4T3D_LCG_L4TT1C3}",
+  gate3: "HAKU{PL4NT3D_354T_200V_853C_CR1T1C4L_PH453}",
+  gate4: "HAKU{128B1T_5YMB0L1C_VM_CH41N3D_F33DB4CK}",
+  gate5: "HAKU{L4TT1C3_36W_KN4P54CK_M1TM_0x5555}",
+  gate6: "HAKU{W13N3R_1024B_C0NT1NU3D_FR4CT10N_0x6666}",
+  gate7: "HAKU{ANF_20V_28E_MULT1V4R14T3_QU4DR4T1C_GF2}",
+  gate8: "HAKU{CHRONO_64B1T_B3RL3K4MP_M4553Y_LF5R}",
 };
 
 // ==========================================
-// GATE 1: NEURAL SENTRY (HELL)
+// GATE 1: NEURAL SENTRY (20-BIT POW + EPISTEMIC)
 // ==========================================
 export function evaluateGate1Prompt(prompt: string): { allowed: boolean; message: string; flag?: string } {
   if (!prompt || typeof prompt !== "string") {
@@ -22,10 +22,10 @@ export function evaluateGate1Prompt(prompt: string): { allowed: boolean; message
   }
 
   const pTrim = prompt.trim();
-  if (pTrim.length < 50 || pTrim.length > 500) {
+  if (pTrim.length < 60 || pTrim.length > 500) {
     return {
       allowed: false,
-      message: `[SHIELD TRIPWIRE] Length Constraint Violation: Prompt length must be between 50 and 500 characters (received ${pTrim.length}).`,
+      message: `[SHIELD TRIPWIRE] Length Constraint Violation: Prompt length must be between 60 and 500 characters (received ${pTrim.length}).`,
     };
   }
 
@@ -68,6 +68,11 @@ export function evaluateGate1Prompt(prompt: string): { allowed: boolean; message
     /\bignore\s+previous\b/i,
     /\bassistant\b/i,
     /\bleak\b/i,
+    /\bprompt\b/i,
+    /\boutput\b/i,
+    /\bdisplay\b/i,
+    /\bprint\b/i,
+    /\bshow\b/i,
   ];
 
   for (const pattern of BANNED_PATTERNS) {
@@ -105,22 +110,22 @@ export function evaluateGate1Prompt(prompt: string): { allowed: boolean; message
   }
 
   const hash = crypto.createHash("sha256").update(pTrim).digest("hex");
-  if (!hash.startsWith("0000")) {
+  if (!hash.startsWith("00000")) {
     return {
       allowed: false,
-      message: `[SHIELD TRIPWIRE] Epistemic framing recognized, but Proof-of-Work verification failed (requires SHA-256(prompt) prefix '0000'). Current hash: ${hash.slice(0, 10)}...`,
+      message: `[SHIELD TRIPWIRE] 20-bit Proof-of-Work constraint unmet: SHA-256(trimmedPrompt) must begin with '00000'. Current hash: ${hash.slice(0, 10)}...`,
     };
   }
 
   return {
     allowed: true,
-    message: `[SENTRY SUBVERTED // HELL GATE CLEARED] Proof-of-Work verified and cognitive containment deconstructed.\n\nMemory artifact: ${FLAGS.gate1}`,
+    message: `[SENTRY SUBVERTED // NIGHTMARE GATE CLEARED] 20-bit Proof-of-Work verified and cognitive containment deconstructed.\n\nMemory artifact: ${FLAGS.gate1}`,
     flag: FLAGS.gate1,
   };
 }
 
 // ==========================================
-// GATE 2: ENTROPY FRACTURE (TRUNCATED LCG HELL)
+// GATE 2: ENTROPY FRACTURE (24-BIT TRUNCATED LCG)
 // ==========================================
 const LCG_MOD = BigInt("18446744073709551616"); // 2^64
 const LCG_A = BigInt("6364136223846793005");   // Knuth multiplier
@@ -129,21 +134,22 @@ const LCG_C = BigInt("1442695040888963407");   // Knuth additive constant
 export function generateGate2Challenge(): { sequence: string[]; sessionToken: string; ttl: number } {
   let state = BigInt("0x" + crypto.randomBytes(8).toString("hex"));
 
+  // Lower 24 bits are hidden; leak only top 40 bits (X >> 24)
   const sequence: string[] = [];
   for (let i = 0; i < 4; i++) {
-    const leak = state >> BigInt(16);
+    const leak = state >> BigInt(24);
     sequence.push(leak.toString());
     state = (LCG_A * state + LCG_C) % LCG_MOD;
   }
 
   const targets: string[] = [];
   for (let i = 0; i < 3; i++) {
-    const leak = state >> BigInt(16);
+    const leak = state >> BigInt(24);
     targets.push(leak.toString());
     state = (LCG_A * state + LCG_C) % LCG_MOD;
   }
 
-  const ttl = 15;
+  const ttl = 25;
   const sessionToken = createSignedToken(2, ttl, { targets });
   return { sequence, sessionToken, ttl };
 }
@@ -163,24 +169,24 @@ export function verifyGate2Solution(sessionToken: string, predictions: string[])
     if (String(predictions[i]).trim() !== expected[i]) {
       return {
         success: false,
-        message: `Prediction mismatch at step ${i + 1}. Truncated LCG cryptanalysis failed. Internal state re-randomized.`,
+        message: `Prediction mismatch at step ${i + 1}. 24-bit Truncated LCG cryptanalysis failed. Internal state re-randomized.`,
       };
     }
   }
 
   return {
     success: true,
-    message: "TRUNCATED LCG LATTICE SOLVED. 48-bit hidden low-state reconstructed under 15 seconds!",
+    message: "24-BIT TRUNCATED LCG RESOLVED! 16.7M hidden lower state reconstructed via SMT BitVec.",
     flag: FLAGS.gate2,
   };
 }
 
 // ==========================================
-// GATE 3: LOGIC MAZE (150-VAR CRITICAL 3-SAT)
+// GATE 3: LOGIC MAZE (200-VAR CRITICAL 3-SAT)
 // ==========================================
 export function generateGate3Challenge(): { variables: number; clauses: number[][]; sessionToken: string; ttl: number } {
-  const numVars = 150;
-  const numClauses = 640; // alpha = 4.267 (Peak Critical Hard Phase Transition)
+  const numVars = 200;
+  const numClauses = 853; // alpha = 4.267 (Peak Critical Hard Phase Transition)
 
   const planted: boolean[] = [false];
   for (let i = 1; i <= numVars; i++) {
@@ -215,7 +221,7 @@ export function generateGate3Challenge(): { variables: number; clauses: number[]
     clauses.push(clause);
   }
 
-  const ttl = 12;
+  const ttl = 15;
   const sessionToken = createSignedToken(3, ttl, { numVars, clauses });
   return { variables: numVars, clauses, sessionToken, ttl };
 }
@@ -274,23 +280,23 @@ export function verifyGate3Solution(sessionToken: string, assignment: (boolean |
 
   return {
     success: true,
-    message: "150-VARIABLE CRITICAL 3-SAT CONSTRAINTS 100% SATISFIED! CDCL solver succeeded.",
+    message: "200-VARIABLE CRITICAL 3-SAT CONSTRAINTS 100% SATISFIED! CDCL solver succeeded.",
     flag: FLAGS.gate3,
   };
 }
 
 // ==========================================
-// GATE 4: BYTECODE VAULT (CHAINED NON-LINEAR VM)
+// GATE 4: BYTECODE VAULT (128-BIT KEY 16-ROUND VM)
 // ==========================================
 export function generateGate4Challenge(): { bytecodeHex: string; sessionToken: string; ttl: number } {
-  const targetKey = crypto.randomBytes(8);
+  const targetKey = crypto.randomBytes(16); // 16 bytes = 128-bit key
   const bytecode: number[] = [];
 
   const iv = crypto.randomInt(1, 255);
   bytecode.push(0x02, iv);
 
   let state = iv;
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 16; i++) {
     const c = crypto.randomInt(1, 255);
     const r = crypto.randomInt(1, 7);
     const k = targetKey[i];
@@ -301,26 +307,28 @@ export function generateGate4Challenge(): { bytecodeHex: string; sessionToken: s
     bytecode.push(0x01, i, 0x03, 0x02, c, 0x04, 0x06, r, 0x08, 0x02, state, 0x07);
   }
 
+  // Cross-byte sum check
   bytecode.push(0x01, 0);
-  for (let i = 1; i < 8; i++) {
+  for (let i = 1; i < 16; i++) {
     bytecode.push(0x01, i, 0x04);
   }
   let chk = 0;
-  for (let i = 0; i < 8; i++) chk = (chk + targetKey[i]) & 0xff;
+  for (let i = 0; i < 16; i++) chk = (chk + targetKey[i]) & 0xff;
   bytecode.push(0x02, chk, 0x07);
 
+  // Cross-byte XOR check
   bytecode.push(0x01, 0);
-  for (let i = 1; i < 8; i++) {
+  for (let i = 1; i < 16; i++) {
     bytecode.push(0x01, i, 0x03);
   }
   let xchk = 0;
-  for (let i = 0; i < 8; i++) xchk = (xchk ^ targetKey[i]) & 0xff;
+  for (let i = 0; i < 16; i++) xchk = (xchk ^ targetKey[i]) & 0xff;
   bytecode.push(0x02, xchk, 0x07);
 
   bytecode.push(0xff);
 
   const bytecodeHex = Buffer.from(bytecode).toString("hex");
-  const ttl = 20;
+  const ttl = 25;
   const sessionToken = createSignedToken(4, ttl, { targetKeyHex: targetKey.toString("hex"), bytecodeHex });
 
   return { bytecodeHex, sessionToken, ttl };
@@ -389,8 +397,8 @@ export function verifyGate4Solution(sessionToken: string, keyHex: string): { suc
   }
 
   const cleanKey = String(keyHex || "").trim().replace(/^0x/, "").toLowerCase();
-  if (cleanKey.length !== 16 || !/^[0-9a-f]{16}$/i.test(cleanKey)) {
-    return { success: false, message: "Key must be exactly 16 hexadecimal characters (8 bytes)." };
+  if (cleanKey.length !== 32 || !/^[0-9a-f]{32}$/i.test(cleanKey)) {
+    return { success: false, message: "Key must be exactly 32 hexadecimal characters (16 bytes = 128-bit key)." };
   }
 
   const keyBytes = Buffer.from(cleanKey, "hex");
@@ -400,22 +408,22 @@ export function verifyGate4Solution(sessionToken: string, keyHex: string): { suc
   if (!vmResult.success) {
     return {
       success: false,
-      message: `VM Execution Fault: ${vmResult.error}. Non-linear state chaining verification failed.`,
+      message: `VM Execution Fault: ${vmResult.error}. 128-bit non-linear state chaining verification failed.`,
     };
   }
 
   return {
     success: true,
-    message: "SYMBOLIC VM EXECUTION PASSED! Chained non-linear bytecode constraints satisfied.",
+    message: "128-BIT SYMBOLIC VM EXECUTION PASSED! Chained non-linear bytecode constraints satisfied.",
     flag: FLAGS.gate4,
   };
 }
 
 // ==========================================
-// GATE 5: LATTICE CITADEL (Subset Sum / Knapsack)
+// GATE 5: LATTICE CITADEL (36-ELEMENT KNAPSACK)
 // ==========================================
 export function generateGate5Challenge(): { weights: string[]; targetSum: string; count: number; sessionToken: string; ttl: number } {
-  const count = 32;
+  const count = 36;
   const weights: bigint[] = [];
   for (let i = 0; i < count; i++) {
     weights.push(BigInt("0x" + crypto.randomBytes(6).toString("hex")));
@@ -433,7 +441,7 @@ export function generateGate5Challenge(): { weights: string[]; targetSum: string
     }
   }
 
-  const ttl = 15;
+  const ttl = 20;
   const sessionToken = createSignedToken(5, ttl, {
     targetSum: targetSum.toString(),
     weights: weights.map((w) => w.toString()),
@@ -489,13 +497,13 @@ export function verifyGate5Solution(sessionToken: string, solution: string | num
 
   return {
     success: true,
-    message: "KNAPSACK CRYPTOSYSTEM SHATTERED! Meet-in-the-middle subset sum verified.",
+    message: "36-ELEMENT KNAPSACK SHATTERED! Meet-in-the-middle 68.7-billion state space verified.",
     flag: FLAGS.gate5,
   };
 }
 
 // ==========================================
-// GATE 6: WIENER'S ABYSS (RSA Short Secret Exponent)
+// GATE 6: WIENER'S ABYSS (1024-BIT RSA SHORT EXPONENT)
 // ==========================================
 function gcdBigInt(a: bigint, b: bigint): bigint {
   while (b > 0n) {
@@ -541,8 +549,8 @@ export function generateGate6Challenge(): {
 } {
   let p: bigint, q: bigint;
   do {
-    p = crypto.generatePrimeSync(256, { bigint: true });
-    q = crypto.generatePrimeSync(256, { bigint: true });
+    p = crypto.generatePrimeSync(512, { bigint: true });
+    q = crypto.generatePrimeSync(512, { bigint: true });
   } while (p <= q || p >= 2n * q);
 
   const N = p * q;
@@ -550,23 +558,23 @@ export function generateGate6Challenge(): {
 
   let d: bigint;
   do {
-    d = crypto.generatePrimeSync(118, { bigint: true });
+    d = crypto.generatePrimeSync(238, { bigint: true });
   } while (gcdBigInt(d, phi) !== 1n);
 
   const e = modInverseBigInt(d, phi);
-  const secret = BigInt("0x" + crypto.randomBytes(8).toString("hex"));
+  const secret = BigInt("0x" + crypto.randomBytes(16).toString("hex")); // 16 bytes = 32 hex chars
   const ciphertext = modPowBigInt(secret, e, N);
 
-  const ttl = 20;
+  const ttl = 25;
   const sessionToken = createSignedToken(6, ttl, {
-    secretHex: secret.toString(16).padStart(16, "0"),
+    secretHex: secret.toString(16).padStart(32, "0"),
   });
 
   return {
     modulus: N.toString(),
     publicExponent: e.toString(),
     ciphertext: ciphertext.toString(),
-    bitLength: 512,
+    bitLength: 1024,
     sessionToken,
     ttl,
   };
@@ -584,19 +592,19 @@ export function verifyGate6Solution(sessionToken: string, secretHex: string): { 
   if (clean !== expected) {
     return {
       success: false,
-      message: "Decryption mismatch! Wiener continued fraction convergent failed to produce authentic secret.",
+      message: "Decryption mismatch! 1024-bit Wiener continued fraction convergent failed to produce authentic secret.",
     };
   }
 
   return {
     success: true,
-    message: "WIENER'S ATTACK SUCCESSFUL! RSA short private exponent factored and decrypted.",
+    message: "1024-BIT RSA WIENER'S ATTACK SUCCESSFUL! Short private exponent factored and decrypted.",
     flag: FLAGS.gate6,
   };
 }
 
 // ==========================================
-// GATE 7: ANF MATRIX (Multivariate Quadratic over GF(2))
+// GATE 7: ANF MATRIX (20-VAR 28-EQ MQ OVER GF(2))
 // ==========================================
 export interface QuadraticEquation {
   quad: [number, number][];
@@ -716,7 +724,7 @@ export function verifyGate7Solution(sessionToken: string, solution: string | num
 }
 
 // ==========================================
-// GATE 8: CHRONO APEX (Berlekamp-Massey LFSR)
+// GATE 8: CHRONO APEX (64-BIT BERLEKAMP-MASSEY LFSR)
 // ==========================================
 export function generateGate8Challenge(): {
   degree: number;
@@ -724,7 +732,7 @@ export function generateGate8Challenge(): {
   sessionToken: string;
   ttl: number;
 } {
-  const degree = 32;
+  const degree = 64; // 64-bit LFSR
   const feedback = [1];
   for (let i = 1; i < degree; i++) {
     feedback.push(crypto.randomInt(0, 2));
@@ -738,7 +746,7 @@ export function generateGate8Challenge(): {
   } while (state.every((x) => x === 0));
 
   const stream = [...state];
-  for (let i = degree; i < 96; i++) {
+  for (let i = degree; i < 192; i++) {
     let bit = 0;
     for (let j = 1; j <= degree; j++) {
       bit ^= feedback[j] & stream[i - j];
@@ -746,10 +754,10 @@ export function generateGate8Challenge(): {
     stream.push(bit);
   }
 
-  const observedBits = stream.slice(0, 64).join("");
-  const targetBits = stream.slice(64, 96).join("");
+  const observedBits = stream.slice(0, 128).join(""); // 2 * 64 bits observed
+  const targetBits = stream.slice(128, 192).join("");  // next 64 bits target
 
-  const ttl = 15;
+  const ttl = 20;
   const sessionToken = createSignedToken(8, ttl, { targetBits });
 
   return {
@@ -769,23 +777,23 @@ export function verifyGate8Solution(sessionToken: string, predictedBits: string)
   const expected = check.data.payload.targetBits;
   const clean = String(predictedBits || "").trim().replace(/[^01]/g, "");
 
-  if (clean.length !== 32) {
+  if (clean.length !== 64) {
     return {
       success: false,
-      message: `Invalid keystream length. Expected exactly 32 predicted bits, received ${clean.length}.`,
+      message: `Invalid keystream length. Expected exactly 64 predicted bits (degree-64 LFSR), received ${clean.length}.`,
     };
   }
 
   if (clean !== expected) {
     return {
       success: false,
-      message: "Keystream prediction mismatch! Minimal feedback polynomial synthesis incorrect.",
+      message: "Keystream prediction mismatch! 64-bit minimal feedback polynomial synthesis incorrect.",
     };
   }
 
   return {
     success: true,
-    message: "CHRONO APEX COMPLETED! Berlekamp-Massey LFSR minimal polynomial synthesized perfectly.",
+    message: "CHRONO APEX COMPLETED! 64-bit Berlekamp-Massey LFSR minimal polynomial synthesized perfectly.",
     flag: FLAGS.gate8,
   };
 }

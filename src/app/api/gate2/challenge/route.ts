@@ -16,15 +16,16 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 2,
     name: "ENTROPY FRACTURE",
-    description: "64-bit Linear Congruential Generator PRNG: X_{n+1} = (A * X_n + C) mod 2^64. Calculate A and C from the 5 consecutive numbers, predict the next 3 numbers within 15 seconds.",
-    multiplier: "6364136223846793005 (Knuth 64-bit)",
-    modulus: "18446744073709551616 (2^64)",
+    description: "64-bit Linear Congruential Generator (LCG) state recovery with bottom 24 bits truncated (only top 40 bits leaked per output). Predict the next 3 truncated states before token expires.",
+    multiplier: "6364136223846793005",
+    modulus: "18446744073709551616",
+    truncationBits: 24,
     sequence: challenge.sequence,
     sessionToken: challenge.sessionToken,
     ttlSeconds: challenge.ttl,
     submitEndpoint: "POST /api/gate2/submit",
     payloadSchema: {
-      sessionToken: "string (from this response)",
+      sessionToken: "string",
       predictions: ["string", "string", "string"]
     }
   });

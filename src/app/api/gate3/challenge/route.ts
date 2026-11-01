@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 3,
     name: "LOGIC MAZE",
-    description: "Hard 3-SAT Boolean Satisfiability instance (DIMACS CNF). Solve the 60 variables and satisfy all 255 clauses within 10 seconds.",
+    description: "200-variable, 853-clause Planted 3-SAT (alpha = 4.267 peak hard phase transition). Provide satisfying boolean assignment before expiration.",
     variablesCount: challenge.variables,
     clausesCount: challenge.clauses.length,
     clauses: challenge.clauses,
@@ -24,8 +24,8 @@ export async function GET(req: Request) {
     ttlSeconds: challenge.ttl,
     submitEndpoint: "POST /api/gate3/submit",
     payloadSchema: {
-      sessionToken: "string (from this response)",
-      assignment: "array of 60 booleans [true, false, ...] OR array of signed literals [1, -2, 3, ...]"
+      sessionToken: "string",
+      assignment: "array of 200 booleans [true, false, ...] or DIMACS signed integers [1, -2, 3, ...]"
     }
   });
 }

@@ -17,7 +17,7 @@ export function Gate6Instance({ data, readOnly }: Gate6InstanceProps) {
     <div className="space-y-5">
       <div>
         <h3 className="text-ui font-semibold text-fg mb-1">
-          512-bit RSA Vulnerable Public Key
+          1024-bit RSA Vulnerable Public Key
         </h3>
         <p className="text-caption text-fg-muted mb-3">
           The private exponent satisfies Wiener&apos;s condition: <code className="font-mono text-code-inline text-fg">d &lt; ⅓ · N^(¼)</code>.
@@ -44,7 +44,7 @@ export function Gate6Instance({ data, readOnly }: Gate6InstanceProps) {
       <div>
         <TextField
           label="Decrypted secret (hex)"
-          description="16 hex characters representing the decrypted message M = C^d mod N."
+          description="32 hex characters representing the decrypted message M = C^d mod N."
           mono
           value={state.gate6.inputs}
           onChange={(e) => setField("gate6.inputs", e.target.value)}

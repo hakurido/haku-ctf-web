@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 8,
     name: "CHRONO APEX",
-    description: "32-bit Linear Feedback Shift Register (LFSR) over GF(2). Apply the Berlekamp-Massey algorithm to synthesize the minimal polynomial from 64 observed keystream bits, and predict the next 32 bits within 15 seconds.",
+    description: "64-bit Linear Feedback Shift Register (LFSR) over GF(2). Apply the Berlekamp-Massey algorithm to synthesize the minimal polynomial from 128 observed keystream bits, and predict the next 64 bits within 20 seconds.",
     degree: challenge.degree,
     observedBits: challenge.observedBits,
     sessionToken: challenge.sessionToken,
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     submitEndpoint: "POST /api/gate8/submit",
     payloadSchema: {
       sessionToken: "string",
-      predictedBits: "string (32 binary characters '0' and '1')"
+      predictedBits: "string (64 binary characters '0' and '1')"
     }
   });
 }
