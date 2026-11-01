@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const rl = checkRateLimit(req, 20, 60000);
+  const rl = checkRateLimit(req, 40, 60000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too Many Requests", message: `Rate limit exceeded. Anti-bruteforce sleep for ${rl.resetInSec}s.` },

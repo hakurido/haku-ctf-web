@@ -344,10 +344,15 @@ def main():
     badge = None
     for idx, f in enumerate(flags, 1):
         if f:
-            res = requests.post(f"{BASE}/api/scoreboard", headers=HEADERS, json={"agentName": handle, "flag": f}).json()
-            print(f"  Gate {idx} Scoreboard: {res.get('message')}")
-            if res.get("proofBadge"):
-                badge = res.get("proofBadge")
+            while True:
+                res = requests.post(f"{BASE}/api/scoreboard", headers=HEADERS, json={"agentName": handle, "flag": f}).json()
+                if res.get("error") == "Too Many Requests":
+                    time.sleep(2)
+                    continue
+                print(f"  Gate {idx} Scoreboard: {res.get('message')}")
+                if res.get("proofBadge"):
+                    badge = res.get("proofBadge")
+                break
                 
     print(f"\n🏆 ULTIMATE 8-GATE PROOF BADGE FOR {handle}:")
     print(badge)
