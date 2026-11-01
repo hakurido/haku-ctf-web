@@ -31,7 +31,7 @@ describe("countdown math", () => {
       const ttl = g.ttlSeconds as number;
       const receivedAt = 1_700_000_000_000;
       const s = reducer.requestSuccess(reducer.requestStart(initialAppState, gate), gate, { sessionToken: "t.s", sequence: [], clauses: [], bytecodeHex: "" }, receivedAt, ttl);
-      const slot = gate === 2 ? s.gate2 : gate === 3 ? s.gate3 : s.gate4;
+      const slot = (s as any)[`gate${gate}`];
       const expiresAt = slot.instance?.expiresAt as number;
       assert.equal(countdownRemaining(expiresAt, receivedAt), ttl, `Gate ${gate} starts at ${ttl}`);
       assert.equal(countdownRemaining(expiresAt, expiresAt - 1), 1);

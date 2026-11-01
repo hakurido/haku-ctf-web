@@ -35,7 +35,7 @@ import { parseGate3Assignment } from "@/lib/validation";
 import { runConsoleCommand } from "@/lib/console";
 import { sounds } from "@/lib/sound";
 
-const INSTANCE_GATES: readonly InstanceGate[] = [2, 3, 4];
+const INSTANCE_GATES: readonly InstanceGate[] = [2, 3, 4, 5, 6, 7, 8];
 const TICK_MS = 250;
 /** The Announcer is emptied first, so a repeated message is spoken again (04 Live Regions). */
 const ANNOUNCE_DELAY_MS = 100;
@@ -48,7 +48,12 @@ type FailedResult = Exclude<ApiResult<unknown>, { kind: "ok" }>;
 
 function toServerError(res: FailedResult): ServerError | null {
   if (res.kind !== "server-error") return null;
-  return { status: res.status, message: res.message, body: res.body };
+  return {
+    status: res.status,
+    message: res.message,
+    retryAt: res.retryAfterSec ? Date.now() + res.retryAfterSec * 1000 : null,
+    body: res.body,
+  };
 }
 
 /** "Rate limited." for HTTP 429, "Server error." otherwise, then the server message (R-03). */
@@ -278,12 +283,36 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           assignment: parsed.value,
         };
         send = () => submitGate(3, body);
-      } else {
+      } else if (gate === 4) {
         const body: SubmitBodyByGate[4] = {
           sessionToken,
           keyHex: state.gate4.inputs.trim(),
         };
         send = () => submitGate(4, body);
+      } else if (gate === 5) {
+        const body: SubmitBodyByGate[5] = {
+          sessionToken,
+          solution: state.gate5.inputs.trim(),
+        };
+        send = () => submitGate(5, body);
+      } else if (gate === 6) {
+        const body: SubmitBodyByGate[6] = {
+          sessionToken,
+          secretHex: state.gate6.inputs.trim(),
+        };
+        send = () => submitGate(6, body);
+      } else if (gate === 7) {
+        const body: SubmitBodyByGate[7] = {
+          sessionToken,
+          solution: state.gate7.inputs.trim(),
+        };
+        send = () => submitGate(7, body);
+      } else {
+        const body: SubmitBodyByGate[8] = {
+          sessionToken,
+          predictedBits: state.gate8.inputs.trim(),
+        };
+        send = () => submitGate(8, body);
       }
 
       dispatch({ type: "instance/submitStart", gate });

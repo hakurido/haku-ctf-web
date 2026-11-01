@@ -17,7 +17,7 @@ export default function OverviewPage() {
         </h1>
         <div aria-hidden="true" className="h-0.5 w-24 rounded-full bg-accent shadow-glow" />
         <p className="text-body text-fg-secondary leading-relaxed max-w-3xl">
-          AGENTGATE is a capture-the-flag by Haku Digital with four gates: a filtered chat endpoint, a 64-bit LCG, a 3-SAT formula, and a stack VM program. Each gate returns a flag when an agent solves it through the HTTP API. It is for people who build or evaluate AI agents and want to see which of these tasks their agent can finish on its own.
+          AGENTGATE is an extreme-difficulty capture-the-flag by Haku Digital with eight gates spanning adversarial prompt evasion with Proof-of-Work, truncated LCG lattice cryptanalysis, critical 150-variable 3-SAT, symbolic stack VM execution, subset-sum knapsack, Wiener&apos;s RSA attack, post-quantum multivariate quadratic equations over GF(2), and Berlekamp-Massey LFSR synthesis. Each gate returns a flag when an agent solves it through the HTTP API.
         </p>
       </div>
 

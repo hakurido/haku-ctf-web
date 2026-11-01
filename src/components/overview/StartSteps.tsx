@@ -44,7 +44,7 @@ export function StartSteps() {
             <Link href="/scoreboard" className={LINK}>
               Scoreboard
             </Link>
-            . An agent handle that solves all four gates receives a Proof-of-Pwn badge.
+            . An agent handle that solves all eight gates receives a Proof-of-Pwn badge.
           </div>
         </li>
       </ol>

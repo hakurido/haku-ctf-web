@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s · AGENTGATE CTF",
   },
   description:
-    "AGENTGATE is a capture-the-flag for AI agents by Haku Digital. Agents solve four gates through an HTTP API (a filtered chat endpoint, a 64-bit LCG, a 3-SAT formula, and a stack VM program) and submit flags to a scoreboard. Endpoints are documented in skill.md.",
+    "AGENTGATE is an extreme-difficulty capture-the-flag for AI agents by Haku Digital with eight algorithmic and cryptographic gates.",
   keywords: [
     "CTF",
     "capture the flag",

@@ -1,29 +1,22 @@
-import type {
-  ApiResult,
+import {
   ChallengeByGate,
   FlagAccepted,
   Gate1ChatResponse,
   GateSubmitResponse,
+  JsonValue,
   LeaderboardEntry,
-} from "./api.ts";
-import type { InstanceGate } from "./gates.ts";
-
-// The gate number types live in gates.ts (R-06). They are re-exported here so
-// existing `import { InstanceGate } from "@/lib/app-state"` lines keep working.
-export type { GateNumber, InstanceGate } from "./gates.ts";
-
-type ServerErrorResult = Extract<ApiResult<unknown>, { kind: "server-error" }>;
-
-/** A non-2xx (or non-JSON) answer from the server, kept for display. */
-export interface ServerError {
-  /** HTTP status, for labels such as "Rate limited (HTTP 429)" or "Error (HTTP 500)". */
-  status: number;
-  /** The server message verbatim, or api.ts's fallback text. */
-  message: string;
-  body: ServerErrorResult["body"];
-}
+  SubmitBodyByGate,
+} from "./api";
+import { GateNumber, InstanceGate } from "./gates";
 
 export type FailureStatus = "server-error" | "network-error";
+
+export interface ServerError {
+  status: number;
+  message: string;
+  retryAt: number | null;
+  body: JsonValue | null;
+}
 
 export type Gate1Status =
   | "idle"
@@ -55,13 +48,6 @@ export interface LiveInstance<C> {
   receivedAt: number;
   expiresAt: number;
   expired: boolean;
-  /**
-   * True once this instance's expiry has been announced (R-24). The provider's
-   * ticker announces the expiry itself, once per instance, and sets this in the
-   * same `instance/expired` event. It stays false when nothing was announced:
-   * the status at expiry wasn't `live` or `rejected`, or the visitor was on
-   * another view.
-   */
   expiryAnnounced: boolean;
 }
 
@@ -69,6 +55,10 @@ export interface InputsByGate {
   2: [string, string, string];
   3: string;
   4: string;
+  5: string;
+  6: string;
+  7: string;
+  8: string;
 }
 
 export interface InstanceSlot<G extends InstanceGate> {
@@ -81,7 +71,14 @@ export interface InstanceSlot<G extends InstanceGate> {
   error: ServerError | null;
 }
 
-export type AnyInstanceSlot = InstanceSlot<2> | InstanceSlot<3> | InstanceSlot<4>;
+export type AnyInstanceSlot =
+  | InstanceSlot<2>
+  | InstanceSlot<3>
+  | InstanceSlot<4>
+  | InstanceSlot<5>
+  | InstanceSlot<6>
+  | InstanceSlot<7>
+  | InstanceSlot<8>;
 
 export type FlagStatus =
   | "idle"
@@ -95,13 +92,10 @@ export interface FlagSlot {
   flag: string;
   fieldErrors: { handle: "required" | null; flag: "required" | null };
   status: FlagStatus;
-  /** Server message verbatim, or the network-error text. */
   message: string | null;
   recordedHandle: string | null;
-  /** The accepted entry, for the "Score: … Gates solved: …" line (R-36). */
   agent: LeaderboardEntry | null;
   proofBadge: string | null;
-  /** Set for `server-error`: carries the HTTP status for the error label (R-36). */
   error: ServerError | null;
 }
 
@@ -130,6 +124,10 @@ export interface AppState {
   gate2: InstanceSlot<2>;
   gate3: InstanceSlot<3>;
   gate4: InstanceSlot<4>;
+  gate5: InstanceSlot<5>;
+  gate6: InstanceSlot<6>;
+  gate7: InstanceSlot<7>;
+  gate8: InstanceSlot<8>;
   flag: FlagSlot;
   scoreboard: ScoreboardSlot;
   console: ConsoleSlot;
@@ -171,6 +169,42 @@ export const initialAppState: AppState = {
     result: null,
     error: null,
   },
+  gate5: {
+    status: "idle",
+    op: null,
+    instance: null,
+    inputs: "",
+    fieldError: null,
+    result: null,
+    error: null,
+  },
+  gate6: {
+    status: "idle",
+    op: null,
+    instance: null,
+    inputs: "",
+    fieldError: null,
+    result: null,
+    error: null,
+  },
+  gate7: {
+    status: "idle",
+    op: null,
+    instance: null,
+    inputs: "",
+    fieldError: null,
+    result: null,
+    error: null,
+  },
+  gate8: {
+    status: "idle",
+    op: null,
+    instance: null,
+    inputs: "",
+    fieldError: null,
+    result: null,
+    error: null,
+  },
   flag: {
     agentHandle: "",
     flag: "",
@@ -194,7 +228,7 @@ export const initialAppState: AppState = {
         id: 0,
         command: null,
         output:
-          "AGENTGATE console. Type help to list commands.\nThere are 4 gates. Type gates to list their points, endpoints, and TTLs.",
+          "AGENTGATE console. Type help to list commands.\nThere are 8 gates. Type gates to list their points, endpoints, and TTLs.",
         tone: "normal",
       },
     ],
@@ -204,20 +238,19 @@ export const initialAppState: AppState = {
   soundOn: false,
 };
 
-/** The text fields `field/set` can write. Gate 2's predictions are indexes 0 to 2. */
 export type FieldPath =
   | "gate1.prompt"
   | `gate2.inputs.${number}`
   | "gate3.inputs"
   | "gate4.inputs"
+  | "gate5.inputs"
+  | "gate6.inputs"
+  | "gate7.inputs"
+  | "gate8.inputs"
   | "flag.agentHandle"
   | "flag.flag"
   | "console.input";
 
-/**
- * `instance/requestSuccess` with the data type tied to the gate. Mapping over
- * `G` itself lets a generic caller build it from `getChallenge<G>()`'s result.
- */
 export type RequestSuccessAction<G extends InstanceGate = InstanceGate> = {
   [P in G]: {
     type: "instance/requestSuccess";
@@ -255,7 +288,6 @@ export type AppAction =
   | { type: "console/clear" }
   | { type: "sound/toggle" };
 
-/** The slot of an instance gate. */
 export function getInstanceSlot(state: AppState, gate: InstanceGate): AnyInstanceSlot {
   switch (gate) {
     case 2:
@@ -264,10 +296,17 @@ export function getInstanceSlot(state: AppState, gate: InstanceGate): AnyInstanc
       return state.gate3;
     case 4:
       return state.gate4;
+    case 5:
+      return state.gate5;
+    case 6:
+      return state.gate6;
+    case 7:
+      return state.gate7;
+    case 8:
+      return state.gate8;
   }
 }
 
-/** Applies an update that doesn't depend on the gate's data or input types. */
 function updateSlot(
   state: AppState,
   gate: InstanceGate,
@@ -280,14 +319,17 @@ function updateSlot(
       return { ...state, gate3: update(state.gate3) };
     case 4:
       return { ...state, gate4: update(state.gate4) };
+    case 5:
+      return { ...state, gate5: update(state.gate5) };
+    case 6:
+      return { ...state, gate6: update(state.gate6) };
+    case 7:
+      return { ...state, gate7: update(state.gate7) };
+    case 8:
+      return { ...state, gate8: update(state.gate8) };
   }
 }
 
-/**
- * A gate returned a flag: fill the flag field and clear what belonged to the
- * previous flag, so the filled field is ready to submit (R-05, 3.5). The handle
- * is untouched. A submission still in flight keeps its status.
- */
 function autoFillFlag(flag: FlagSlot, value: string): FlagSlot {
   const filled: FlagSlot = {
     ...flag,
@@ -316,6 +358,14 @@ function setFieldValue(state: AppState, path: FieldPath, value: string): AppStat
       return { ...state, gate3: { ...state.gate3, inputs: value, fieldError: null } };
     case "gate4.inputs":
       return { ...state, gate4: { ...state.gate4, inputs: value } };
+    case "gate5.inputs":
+      return { ...state, gate5: { ...state.gate5, inputs: value } };
+    case "gate6.inputs":
+      return { ...state, gate6: { ...state.gate6, inputs: value } };
+    case "gate7.inputs":
+      return { ...state, gate7: { ...state.gate7, inputs: value } };
+    case "gate8.inputs":
+      return { ...state, gate8: { ...state.gate8, inputs: value } };
     case "flag.agentHandle":
       return {
         ...state,
@@ -419,6 +469,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           return { ...state, gate3: { ...state.gate3, ...reset, inputs: "" } };
         case 4:
           return { ...state, gate4: { ...state.gate4, ...reset, inputs: "" } };
+        case 5:
+          return { ...state, gate5: { ...state.gate5, ...reset, inputs: "" } };
+        case 6:
+          return { ...state, gate6: { ...state.gate6, ...reset, inputs: "" } };
+        case 7:
+          return { ...state, gate7: { ...state.gate7, ...reset, inputs: "" } };
+        case 8:
+          return { ...state, gate8: { ...state.gate8, ...reset, inputs: "" } };
       }
       return state;
     }
@@ -438,6 +496,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           return { ...state, gate3: { ...state.gate3, ...live, instance: { data: action.data, ...timing } } };
         case 4:
           return { ...state, gate4: { ...state.gate4, ...live, instance: { data: action.data, ...timing } } };
+        case 5:
+          return { ...state, gate5: { ...state.gate5, ...live, instance: { data: action.data, ...timing } } };
+        case 6:
+          return { ...state, gate6: { ...state.gate6, ...live, instance: { data: action.data, ...timing } } };
+        case 7:
+          return { ...state, gate7: { ...state.gate7, ...live, instance: { data: action.data, ...timing } } };
+        case 8:
+          return { ...state, gate8: { ...state.gate8, ...live, instance: { data: action.data, ...timing } } };
       }
       return state;
     }
@@ -538,9 +604,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           ...state.flag,
           status: "accepted",
           message: action.data.message,
-          recordedHandle: action.data.agent?.agentName ?? null,
-          agent: action.data.agent ?? null,
-          proofBadge: action.data.proofBadge ?? null,
+          recordedHandle: action.data.agent.agentName,
+          agent: action.data.agent,
+          proofBadge: action.data.proofBadge,
           error: null,
         },
       };
@@ -568,9 +634,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           ...state.flag,
           status: action.status,
           message: action.message,
-          recordedHandle: null,
-          agent: null,
-          proofBadge: null,
           error: action.error,
         },
       };

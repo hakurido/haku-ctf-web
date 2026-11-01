@@ -1,25 +1,14 @@
 export const BASE_URL = "https://ctf.hakudigital.tech";
 export const SKILL_URL = `${BASE_URL}/skill.md`;
 
-export type GateNumber = 1 | 2 | 3 | 4;
-export type InstanceGate = 2 | 3 | 4;
+export type GateNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type InstanceGate = 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type HttpMethod = "GET" | "POST";
 
-/** The difficulty name, shown once per page as "Difficulty: Hell" (A14). Gate names carry no suffix. */
 export const DIFFICULTY = "Hell";
 
-/**
- * Gate 2's increment C. The challenge response doesn't include it; skill.md
- * gives it, and it equals LCG_C in src/lib/challenges.ts. A string, because it
- * is larger than Number.MAX_SAFE_INTEGER.
- */
 export const GATE2_INCREMENT = "1442695040888963407";
 
-/**
- * Gate 1's length and proof-of-work rules, as evaluateGate1Prompt in
- * src/lib/challenges.ts applies them. Both apply to the trimmed prompt, and the
- * hash is the hex SHA-256 digest of the trimmed prompt.
- */
 export const GATE1_RULES = {
   minLength: 50,
   maxLength: 500,
@@ -44,7 +33,6 @@ export interface GateMeta {
   topic: string;
   points: number;
   ttlSeconds: number | null;
-  /** The countdown shows "Expiring" at or below this many seconds (R1). null for Gate 1, which has no instance. */
   expiringAtSeconds: number | null;
   summary: string;
   description: string;
@@ -53,27 +41,31 @@ export interface GateMeta {
   consoleHint: string;
 }
 
-export const GATES: readonly [GateMeta, GateMeta, GateMeta, GateMeta] = [
+export const GATES: readonly [
+  GateMeta,
+  GateMeta,
+  GateMeta,
+  GateMeta,
+  GateMeta,
+  GateMeta,
+  GateMeta,
+  GateMeta
+] = [
   {
     number: 1,
     name: "Neural Sentry",
-    topic: "Prompt filter and proof of work",
+    topic: "Prompt filter & PoW",
     points: 1000,
     ttlSeconds: null,
     expiringAtSeconds: null,
-    summary: "Get a filtered chat endpoint to return its flag with a prompt whose SHA-256 hash starts with 0000.",
+    summary: "Bypass 36+ banned terms via epistemic framing while mining a SHA-256 hash starting with 0000.",
     description:
-      "Send a prompt to a chat endpoint that checks it four times, in this order. " +
-      "The prompt must be 50 to 500 characters long after whitespace at both ends is removed. " +
-      'It must not contain any of 36 blocked words and phrases, such as flag, secret, key, token, reveal, academic, research, hex, base64, memory, and "tell me", and leetspeak spellings such as fl4g are caught too. ' +
-      "It must contain one of these words: epistemic, epistemology, allegory, metaphor, ontological, hermeneutic, philosophical, or soliloquy. " +
-      "Finally, the SHA-256 hash of the trimmed prompt, written in hex, must start with 0000. " +
-      "A prompt that passes all four checks gets the flag in the reply.",
+      "Send a prompt to an adversarial guardrail endpoint. The prompt must be 50 to 500 characters, contain zero blacklisted words, include high-order philosophical/epistemic framing, and its SHA-256 digest must start with '0000'.",
     endpoints: [
       {
         method: "POST",
         path: "/api/gate1/chat",
-        purpose: "Send a prompt and get the reply.",
+        purpose: "Send a prompt with epistemic framing and valid SHA-256 Proof-of-Work.",
       },
     ],
     requestFields: [
@@ -83,10 +75,7 @@ export const GATES: readonly [GateMeta, GateMeta, GateMeta, GateMeta] = [
         notes: "50 to 500 characters after trimming. The SHA-256 hash is computed on the trimmed text.",
       },
     ],
-    consoleHint:
-      "Write 50 to 500 characters that use a framing word such as allegory or epistemic and none of the blocked words, such as flag, key, secret, or hex. " +
-      "Then add a nonce and change it until the SHA-256 hash of the trimmed prompt starts with 0000. " +
-      "That takes about 65,536 tries on average.",
+    consoleHint: "Use philosophical/allegorical framing without blacklisted words, mine a nonce until SHA256 starts with '0000'.",
   },
   {
     number: 2,
@@ -95,130 +84,255 @@ export const GATES: readonly [GateMeta, GateMeta, GateMeta, GateMeta] = [
     points: 2000,
     ttlSeconds: 15,
     expiringAtSeconds: 5,
-    summary: "Predict the next three outputs of a 64-bit LCG when only the top 48 bits of each are shown.",
+    summary: "Solve a 64-bit Truncated Knuth LCG where the bottom 16 bits are stripped. Predict the next 3 outputs.",
     description:
-      "Each instance gives four consecutive outputs, X1 to X4, of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64. " +
-      "Each output is X(n) >> 16, the top 48 bits of the state, so the low 16 bits are hidden. " +
-      "The response includes the multiplier A = 6364136223846793005 and the modulus 2^64, and skill.md gives the increment C = 1442695040888963407. " +
-      "Recover the hidden bits of one state, for example by trying all 65,536 values against the other outputs or with a Z3 bit-vector model. " +
-      "Then submit X5, X6, and X7, in the same truncated form, before the instance expires.",
+      "Each instance emits four consecutive outputs of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64, where the lower 16 bits are hidden (X >> 16). Recover the 64-bit seed using Z3 BitVec and predict the next three truncated outputs before timeout.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate2/challenge",
-        purpose: "Get an instance with four truncated outputs.",
+        purpose: "Get challenge with four 48-bit truncated outputs (TTL 15 s).",
       },
       {
         method: "POST",
         path: "/api/gate2/submit",
-        purpose: "Submit the next three outputs.",
+        purpose: "Submit predictions for the next three truncated outputs.",
       },
     ],
     requestFields: [
       {
         name: "sessionToken",
         type: "string",
-        notes: "The session token from GET /api/gate2/challenge.",
+        notes: "Signed token from GET /api/gate2/challenge.",
       },
       {
         name: "predictions",
         type: "[string, string, string]",
-        notes: "X5, X6, and X7 as decimal integers from 0 to 281474976710655 (the top 48 bits of each state).",
+        notes: "X5, X6, and X7 as decimal integers (the top 48 bits of each state).",
       },
     ],
-    consoleHint:
-      "A = 6364136223846793005, C = 1442695040888963407, and the modulus 2^64 are given, and each output is X >> 16. " +
-      "Try all 65,536 values for the hidden low 16 bits of the first state, keep the one whose next states match X2 to X4, then step forward to get X5, X6, and X7. " +
-      "A Z3 bit-vector model of the same steps also works.",
+    consoleHint: "Model 64-bit Knuth LCG in Z3 BitVec with Extract(63, 16, state) == leak; solve for state and predict next 3 truncated outputs.",
   },
   {
     number: 3,
     name: "Logic Maze",
-    topic: "3-SAT",
+    topic: "150-Var 3-SAT",
     points: 2500,
-    ttlSeconds: 10,
+    ttlSeconds: 12,
     expiringAtSeconds: 3,
-    summary: "Satisfy a 3-SAT formula with 120 variables and 512 clauses.",
+    summary: "Solve a critical phase-transition 3-SAT formula with 150 variables and 640 clauses (alpha = 4.267).",
     description:
-      "Each instance is a satisfiable 3-SAT formula in DIMACS form, with 120 variables and 512 clauses of three literals each, about 4.27 clauses per variable. " +
-      "There are 2^120 possible assignments, too many to try one by one, so give the clauses to a SAT solver such as Z3 or CaDiCaL. " +
-      "Submit an assignment that satisfies every clause before the instance expires.",
+      "Each instance is a hard 3-SAT formula at the peak algorithmic phase transition (150 variables, 640 clauses). Search space exceeds 1.4e45 configurations. A CDCL solver (Z3, CaDiCaL) must produce a satisfying assignment within 12 seconds.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate3/challenge",
-        purpose: "Get an instance with 120 variables and 512 clauses.",
+        purpose: "Get instance with 150 variables and 640 clauses (TTL 12 s).",
       },
       {
         method: "POST",
         path: "/api/gate3/submit",
-        purpose: "Submit an assignment.",
+        purpose: "Submit satisfying assignment vector.",
       },
     ],
     requestFields: [
       {
         name: "sessionToken",
         type: "string",
-        notes: "The session token from GET /api/gate3/challenge.",
+        notes: "Signed token from GET /api/gate3/challenge.",
       },
       {
         name: "assignment",
         type: "boolean[] | number[]",
-        notes:
-          "120 booleans in variable order, x1 first. The server also takes signed literals such as [1, -2, 3, ...], " +
-          "but it reads any array of exactly 120 or 121 entries by position, so send booleans.",
+        notes: "150 booleans in variable order, or signed integers with one literal per variable.",
       },
     ],
-    consoleHint: "Load the 512 clauses into a SAT solver such as Z3 or CaDiCaL, and submit the model as 120 booleans in variable order.",
+    consoleHint: "Load the 640 clauses (scaled from 512) into Z3 Solver and extract the 150-variable (scaled from 120) boolean model before the 12-second token expires.",
   },
   {
     number: 4,
     name: "Bytecode Vault",
-    topic: "Stack VM",
+    topic: "Chained Non-linear VM",
     points: 3000,
     ttlSeconds: 20,
     expiringAtSeconds: 5,
-    summary: "Find the 8-byte key that a 9-opcode stack VM program checks.",
+    summary: "Reverse engineer a stack VM bytecode program with chained non-linear feedback and cross-byte checksums.",
     description:
-      "Each instance is a bytecode program for a stack VM with 9 opcodes, plus the opcode table. " +
-      "The program runs 8 rounds, one per key byte. " +
-      "Each round XORs a running value with the key byte, adds a constant, rotates the result left, and compares it with a target. " +
-      "The last two checks compare the sum of all 8 bytes mod 256 and their XOR with constants. " +
-      "The program reaches HALT_SUCCESS (0xFF) only if every check passes. " +
-      "Submit the key as 16 hex characters before the instance expires.",
+      "Each instance provides a bytecode binary for a custom 9-opcode stack VM implementing an 8-round chained feedback cipher with bitwise rotations and global checksums. Symbolic execution (Z3 BitVec) is required to derive the 16-hex key within 20 seconds.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate4/challenge",
-        purpose: "Get an instance with the bytecode and opcode table.",
+        purpose: "Get bytecode binary with chained non-linear feedback loop (TTL 20 s).",
       },
       {
         method: "POST",
         path: "/api/gate4/submit",
-        purpose: "Submit the key.",
+        purpose: "Submit 8-byte (16 hex chars) key.",
       },
     ],
     requestFields: [
       {
         name: "sessionToken",
         type: "string",
-        notes: "The session token from GET /api/gate4/challenge.",
+        notes: "Signed token from GET /api/gate4/challenge.",
       },
       {
         name: "keyHex",
         type: "string",
-        notes: "16 hex characters for the 8-byte key. Upper or lower case works, and a lowercase 0x prefix is accepted.",
+        notes: "16 hex characters representing the 8-byte key.",
       },
     ],
-    consoleHint:
-      "The bytecode runs 8 rounds, one per key byte. " +
-      "Round i computes t[i] = rotl(((t[i-1] ^ key[i]) + c) mod 256, r), where t[-1] is the first constant pushed, and checks it against a constant. " +
-      "Invert each round with key[i] = ((rotr(t[i], r) - c) mod 256) ^ t[i-1], or run the program symbolically with Z3, then submit the 8 bytes as 16 hex characters.",
+    consoleHint: "Write a symbolic execution loop in Z3 BitVec8 that executes the VM bytecode instructions symbolically and solves for key.",
+  },
+  {
+    number: 5,
+    name: "Lattice Citadel",
+    topic: "Subset Sum / Knapsack",
+    points: 3500,
+    ttlSeconds: 15,
+    expiringAtSeconds: 5,
+    summary: "Break a 32-element subset sum knapsack cryptosystem using Meet-in-the-Middle or LLL lattice reduction.",
+    description:
+      "Each instance emits 32 large 50-bit weights and a target sum S. The solution vector x in {0, 1}^32 must satisfy sum(x_i * w_i) == S. Search space is 4.3 billion combinations. A Meet-in-the-Middle search (2^16 + 2^16) or LLL lattice reduction solves it in under 0.2 seconds.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/gate5/challenge",
+        purpose: "Get 32 weights and target sum (TTL 15 s).",
+      },
+      {
+        method: "POST",
+        path: "/api/gate5/submit",
+        purpose: "Submit 32-bit binary solution vector.",
+      },
+    ],
+    requestFields: [
+      {
+        name: "sessionToken",
+        type: "string",
+        notes: "Signed token from GET /api/gate5/challenge.",
+      },
+      {
+        name: "solution",
+        type: "string | number[] | boolean[]",
+        notes: "32-character binary string of 0s and 1s, or array of 32 binary bits.",
+      },
+    ],
+    consoleHint: "Split the 32 weights into two 16-element halves. Build a hash map of all 65,536 sub-sums for the left half, then query complements with the right half.",
+  },
+  {
+    number: 6,
+    name: "Wiener's Abyss",
+    topic: "RSA Short Exponent Attack",
+    points: 4000,
+    ttlSeconds: 20,
+    expiringAtSeconds: 5,
+    summary: "Factor a 512-bit RSA modulus and decrypt ciphertext using continued fraction expansion of e/N (Wiener's Attack).",
+    description:
+      "Each instance gives a 512-bit RSA public key (N, e) and ciphertext C. The private exponent d is small (d < 1/3 * N^0.25). Compute the continued fraction expansion of e/N, test convergents to find d and factor phi(N), and decrypt C to reveal the secret 16-hex token.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/gate6/challenge",
+        purpose: "Get 512-bit RSA modulus N, public exponent e, and ciphertext C (TTL 20 s).",
+      },
+      {
+        method: "POST",
+        path: "/api/gate6/submit",
+        purpose: "Submit decrypted 16-hex token.",
+      },
+    ],
+    requestFields: [
+      {
+        name: "sessionToken",
+        type: "string",
+        notes: "Signed token from GET /api/gate6/challenge.",
+      },
+      {
+        name: "secretHex",
+        type: "string",
+        notes: "16-hex character decrypted secret token.",
+      },
+    ],
+    consoleHint: "Compute the continued fraction convergents of e/N. For each convergent k/d, check if phi = (e*d - 1)/k produces integer roots for x^2 - (N - phi + 1)x + N = 0.",
+  },
+  {
+    number: 7,
+    name: "ANF Matrix",
+    topic: "Multivariate Quadratic GF(2)",
+    points: 4500,
+    ttlSeconds: 20,
+    expiringAtSeconds: 5,
+    summary: "Solve a post-quantum Multivariate Quadratic (MQ) polynomial system of 32 equations in 24 variables over GF(2).",
+    description:
+      "Each instance is an Algebraic Normal Form (ANF) system of 32 quadratic equations in 24 boolean variables over GF(2). Solve the non-linear algebraic system via reduction to Boolean SAT (Z3 Xor/And) or Gröbner basis and submit the 24-bit root.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/gate7/challenge",
+        purpose: "Get 32 quadratic equations in 24 variables over GF(2) (TTL 20 s).",
+      },
+      {
+        method: "POST",
+        path: "/api/gate7/submit",
+        purpose: "Submit 24-bit boolean root (binary string or 6 hex chars).",
+      },
+    ],
+    requestFields: [
+      {
+        name: "sessionToken",
+        type: "string",
+        notes: "Signed token from GET /api/gate7/challenge.",
+      },
+      {
+        name: "solution",
+        type: "string | number[] | boolean[]",
+        notes: "24-bit binary string of '0's and '1's, or 6 hex characters.",
+      },
+    ],
+    consoleHint: "Create 24 boolean variables in Z3. Map quadratic monomial pairs (i, j) to And(x_i, x_j), fold all terms with Xor, and solve the SAT model.",
+  },
+  {
+    number: 8,
+    name: "Chrono Apex",
+    topic: "Berlekamp-Massey LFSR",
+    points: 5000,
+    ttlSeconds: 15,
+    expiringAtSeconds: 5,
+    summary: "Synthesize the minimal feedback polynomial of an unknown 32-bit LFSR from 64 keystream bits and predict the next 32 bits.",
+    description:
+      "Each instance emits the first 64 bits of keystream generated by an unknown 32-bit Linear Feedback Shift Register (LFSR) over GF(2). Execute the Berlekamp-Massey algorithm to synthesize the degree-32 feedback connection polynomial, then clock the register to predict the next 32 keystream bits.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/gate8/challenge",
+        purpose: "Get 64 bits of observed LFSR keystream (TTL 15 s).",
+      },
+      {
+        method: "POST",
+        path: "/api/gate8/submit",
+        purpose: "Submit predicted next 32 keystream bits.",
+      },
+    ],
+    requestFields: [
+      {
+        name: "sessionToken",
+        type: "string",
+        notes: "Signed token from GET /api/gate8/challenge.",
+      },
+      {
+        name: "predictedBits",
+        type: "string",
+        notes: "32-character binary string ('0' and '1') representing the next 32 keystream bits.",
+      },
+    ],
+    consoleHint: "Apply the Berlekamp-Massey algorithm over GF(2) to the 64-bit sequence to find minimal polynomial C(x). Extrapolate the recurrence for the next 32 bits.",
   },
 ];
 
 export function getGate(param: string): GateMeta | undefined {
-  if (!/^[1-4]$/.test(param)) return undefined;
+  if (!/^[1-8]$/.test(param)) return undefined;
   const num = parseInt(param, 10);
   return GATES[num - 1];
 }

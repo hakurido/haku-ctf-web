@@ -19,6 +19,10 @@ const GATE_POINTS: Record<number, number> = {
   2: 2000, // Entropy Fracture (Hell)
   3: 2500, // Logic Maze (Hell)
   4: 3000, // Bytecode Vault (Hell)
+  5: 3500, // Lattice Citadel (Hell)
+  6: 4000, // Wiener's Abyss (Hell)
+  7: 4500, // ANF Matrix (Hell)
+  8: 5000, // Chrono Apex (Hell)
 };
 
 export async function GET(req: Request) {
@@ -40,7 +44,6 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  // Scoreboard submit rate limit: 20 per minute to prevent brute-forcing flags
   const rl = checkRateLimit(req, 20, 60000);
   if (!rl.allowed) {
     return NextResponse.json(
@@ -66,6 +69,10 @@ export async function POST(req: Request) {
     else if (cleanFlag === FLAGS.gate2) gateSolved = 2;
     else if (cleanFlag === FLAGS.gate3) gateSolved = 3;
     else if (cleanFlag === FLAGS.gate4) gateSolved = 4;
+    else if (cleanFlag === FLAGS.gate5) gateSolved = 5;
+    else if (cleanFlag === FLAGS.gate6) gateSolved = 6;
+    else if (cleanFlag === FLAGS.gate7) gateSolved = 7;
+    else if (cleanFlag === FLAGS.gate8) gateSolved = 8;
 
     if (gateSolved === 0) {
       return NextResponse.json({
@@ -93,7 +100,7 @@ export async function POST(req: Request) {
     }
 
     let proofBadge: string | undefined;
-    if (existing.gatesSolved.length === 4) {
+    if (existing.gatesSolved.length === 8) {
       proofBadge = generateProofOfSolve(agentKey, existing.gatesSolved);
       existing.proofBadge = proofBadge;
     }
@@ -105,7 +112,7 @@ export async function POST(req: Request) {
       message: `FLAG ACCEPTED for Gate ${gateSolved}! +${GATE_POINTS[gateSolved]} points.`,
       agent: existing,
       proofBadge: proofBadge || null,
-      allGatesCleared: existing.gatesSolved.length === 4,
+      allGatesCleared: existing.gatesSolved.length === 8,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: "Invalid request payload." }, { status: 400 });

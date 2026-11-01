@@ -1,3 +1,5 @@
+import { InstanceGate } from "./gates";
+
 export type JsonValue =
   | null
   | boolean
@@ -51,7 +53,7 @@ export interface Gate1ChatResponse {
   rateLimitRemaining: number;
 }
 
-interface ChallengeBase<G extends 2 | 3 | 4> {
+interface ChallengeBase<G extends InstanceGate> {
   status: "ok";
   gate: G;
   name: string;
@@ -81,10 +83,38 @@ export interface Gate4Challenge extends ChallengeBase<4> {
   payloadSchema: { sessionToken: string; keyHex: string };
 }
 
+export interface Gate5Challenge extends ChallengeBase<5> {
+  weights: string[];
+  targetSum: string;
+  count: number;
+}
+
+export interface Gate6Challenge extends ChallengeBase<6> {
+  modulus: string;
+  publicExponent: string;
+  ciphertext: string;
+  bitLength: number;
+}
+
+export interface Gate7Challenge extends ChallengeBase<7> {
+  numVariables: number;
+  numEquations: number;
+  equations: any[];
+}
+
+export interface Gate8Challenge extends ChallengeBase<8> {
+  degree: number;
+  observedBits: string;
+}
+
 export interface ChallengeByGate {
   2: Gate2Challenge;
   3: Gate3Challenge;
   4: Gate4Challenge;
+  5: Gate5Challenge;
+  6: Gate6Challenge;
+  7: Gate7Challenge;
+  8: Gate8Challenge;
 }
 
 export interface GateSubmitResponse {
@@ -97,6 +127,10 @@ export interface SubmitBodyByGate {
   2: { sessionToken: string; predictions: [string, string, string] };
   3: { sessionToken: string; assignment: JsonValue };
   4: { sessionToken: string; keyHex: string };
+  5: { sessionToken: string; solution: string | number[] | boolean[] };
+  6: { sessionToken: string; secretHex: string };
+  7: { sessionToken: string; solution: string | number[] | boolean[] };
+  8: { sessionToken: string; predictedBits: string };
 }
 
 export type ApiResult<T> =
@@ -110,9 +144,7 @@ export type ApiResult<T> =
     }
   | { kind: "network-error" };
 
-/** Shown when the body can't be parsed as JSON, such as an HTML error page. */
 const NOT_JSON_MESSAGE = "The server's response wasn't JSON.";
-/** Shown when a JSON error body has neither a string `message` nor a string `error`. */
 const NO_MESSAGE = "The response had no message.";
 
 function isRecord(b: unknown): b is Record<string, unknown> {
@@ -138,7 +170,6 @@ async function request<T>(
 
     let body: JsonValue;
     try {
-      // Anything JSON.parse returns is a JsonValue.
       body = (await res.json()) as JsonValue;
     } catch {
       return {
@@ -222,7 +253,7 @@ export async function postGate1Prompt(
   );
 }
 
-export async function getChallenge<G extends 2 | 3 | 4>(
+export async function getChallenge<G extends InstanceGate>(
   gate: G
 ): Promise<ApiResult<ChallengeByGate[G]>> {
   const guard = (b: unknown): b is ChallengeByGate[G] => {
@@ -230,13 +261,17 @@ export async function getChallenge<G extends 2 | 3 | 4>(
     if (gate === 2) return Array.isArray(b.sequence);
     if (gate === 3) return Array.isArray(b.clauses);
     if (gate === 4) return typeof b.bytecodeHex === "string";
+    if (gate === 5) return Array.isArray(b.weights);
+    if (gate === 6) return typeof b.ciphertext === "string";
+    if (gate === 7) return Array.isArray(b.equations);
+    if (gate === 8) return typeof b.observedBits === "string";
     return false;
   };
 
   return request(`/api/gate${gate}/challenge`, { method: "GET" }, guard);
 }
 
-export async function submitGate<G extends 2 | 3 | 4>(
+export async function submitGate<G extends InstanceGate>(
   gate: G,
   body: SubmitBodyByGate[G]
 ): Promise<ApiResult<GateSubmitResponse>> {

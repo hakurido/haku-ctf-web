@@ -8,6 +8,10 @@ import { Countdown } from "./Countdown";
 import { Gate2Instance } from "./Gate2Instance";
 import { Gate3Instance } from "./Gate3Instance";
 import { Gate4Instance } from "./Gate4Instance";
+import { Gate5Instance } from "./Gate5Instance";
+import { Gate6Instance } from "./Gate6Instance";
+import { Gate7Instance } from "./Gate7Instance";
+import { Gate8Instance } from "./Gate8Instance";
 import { Button } from "../ui/Button";
 import { StatusMessage } from "../ui/StatusMessage";
 import { CopyButton } from "../ui/CopyButton";
@@ -18,12 +22,20 @@ const SUBMIT_LABEL: Record<InstanceGate, string> = {
   2: "Submit predictions",
   3: "Submit assignment",
   4: "Submit key",
+  5: "Submit solution",
+  6: "Submit secret",
+  7: "Submit root",
+  8: "Submit keystream",
 };
 
 const IDLE_TEXT: Record<InstanceGate, string> = {
   2: "No instance yet. Request one to see the sequence, multiplier, and modulus.",
   3: "No instance yet. Request one to see the clauses.",
   4: "No instance yet. Request one to see the bytecode and opcode table.",
+  5: "No instance yet. Request one to see the 32 weights and target sum.",
+  6: "No instance yet. Request one to see the 512-bit RSA modulus and public exponent.",
+  7: "No instance yet. Request one to see the 32 quadratic equations over GF(2).",
+  8: "No instance yet. Request one to see the 64 observed keystream bits.",
 };
 
 export function InstanceTryIt({ gate }: { gate: InstanceGate }) {
@@ -32,23 +44,29 @@ export function InstanceTryIt({ gate }: { gate: InstanceGate }) {
 
   const requestFirstRef = useRef<HTMLButtonElement>(null);
   const requestNewRef = useRef<HTMLButtonElement>(null);
-  // Set when a request starts from a control that unmounts during the swap
-  // between the idle and instance panels (R-26).
   const restoreFocus = useRef(false);
 
   const slot =
-    gate === 2 ? state.gate2 : gate === 3 ? state.gate3 : state.gate4;
+    gate === 2
+      ? state.gate2
+      : gate === 3
+      ? state.gate3
+      : gate === 4
+      ? state.gate4
+      : gate === 5
+      ? state.gate5
+      : gate === 6
+      ? state.gate6
+      : gate === 7
+      ? state.gate7
+      : state.gate8;
   const instance = slot.instance;
 
   const isRequestBusy = slot.status === "loading" && slot.op === "request";
   const isSubmitBusy = slot.status === "loading" && slot.op === "submit";
 
-  // The provider's ticker announces the expiry once per instance (R-24), so
-  // this view doesn't announce it again.
-
   useEffect(() => {
     if (!restoreFocus.current) return;
-    // Only steps in when the focused control unmounted (focus fell to body).
     const lost = !document.activeElement || document.activeElement === document.body;
     if (lost) {
       const target = instance ? requestNewRef.current : requestFirstRef.current;
@@ -89,7 +107,6 @@ export function InstanceTryIt({ gate }: { gate: InstanceGate }) {
           Try it
         </h2>
 
-        {/* The countdown stops showing once the answer is accepted (R-24). */}
         {instance && slot.status !== "accepted" && (
           <Countdown
             expiresAt={instance.expiresAt}
@@ -122,10 +139,21 @@ export function InstanceTryIt({ gate }: { gate: InstanceGate }) {
           {gate === 4 && state.gate4.instance && (
             <Gate4Instance data={state.gate4.instance.data} readOnly={isSubmitDisabled} />
           )}
+          {gate === 5 && state.gate5.instance && (
+            <Gate5Instance data={state.gate5.instance.data} readOnly={isSubmitDisabled} />
+          )}
+          {gate === 6 && state.gate6.instance && (
+            <Gate6Instance data={state.gate6.instance.data} readOnly={isSubmitDisabled} />
+          )}
+          {gate === 7 && state.gate7.instance && (
+            <Gate7Instance data={state.gate7.instance.data} readOnly={isSubmitDisabled} />
+          )}
+          {gate === 8 && state.gate8.instance && (
+            <Gate8Instance data={state.gate8.instance.data} readOnly={isSubmitDisabled} />
+          )}
 
           <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-line">
             <Button
-              // One primary per gate: the inline flag form takes it once a flag shows (R-27).
               variant={slot.status === "accepted" ? "secondary" : "primary"}
               busy={isSubmitBusy}
               disabled={isSubmitDisabled && !isSubmitBusy}

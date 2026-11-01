@@ -5,7 +5,7 @@ import { type GateNumber, GATES } from "@/lib/gates";
 export function GateStepper({ current }: { current: GateNumber }) {
   return (
     <nav aria-label="Gates" className="w-full mb-6">
-      <ol className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <ol className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         {GATES.map((gate) => {
           const isCurrent = gate.number === current;
           return (

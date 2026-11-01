@@ -47,7 +47,7 @@ export function StandingsTable({ entries, busy, showEmpty, labelledBy }: Standin
         </thead>
         <tbody className="divide-y divide-line bg-canvas">
           {entries.map((entry, idx) => {
-            const isCompleted = !!entry.proofBadge || entry.gatesSolved.length === 4;
+            const isCompleted = !!entry.proofBadge || entry.gatesSolved.length === 8;
 
             return (
               <tr key={entry.agentName} className="hover:bg-surface/50 transition-colors">
@@ -59,8 +59,8 @@ export function StandingsTable({ entries, busy, showEmpty, labelledBy }: Standin
                   {formatPoints(entry.score)}
                 </td>
                 <td className="py-3 px-4">
-                  <div className="flex items-center gap-1.5">
-                    {[1, 2, 3, 4].map((g) => {
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((g) => {
                       const solved = entry.gatesSolved.includes(g);
                       return (
                         <span

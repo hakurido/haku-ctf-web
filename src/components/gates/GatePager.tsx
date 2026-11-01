@@ -9,9 +9,9 @@ const LINK =
 export function GatePager({ current }: { current: GateNumber }) {
   const gatesList: readonly GateMeta[] = GATES;
   const prevGate = current > 1 ? gatesList[current - 2] : null;
-  const nextGate = current < 4 ? gatesList[current] : null;
+  const nextGate = current < 8 ? gatesList[current] : null;
 
-  // Gate 1 links back to the Overview and Gate 4 on to the Scoreboard (R-34).
+  // Gate 1 links back to the Overview and Gate 8 on to the Scoreboard (R-34).
   const prev = prevGate
     ? { href: `/gates/${prevGate.number}`, label: `Gate ${prevGate.number}: ${prevGate.name}` }
     : { href: "/", label: "Overview" };

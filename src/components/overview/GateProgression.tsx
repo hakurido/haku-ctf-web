@@ -1,6 +1,16 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Bot, Binary, Network, Terminal } from "lucide-react";
+import {
+  ArrowRight,
+  Bot,
+  Binary,
+  Network,
+  Terminal,
+  Grid3X3,
+  Key,
+  Cpu,
+  Zap,
+} from "lucide-react";
 import { DIFFICULTY, type GateMeta } from "@/lib/gates";
 import { formatPoints } from "@/lib/format";
 
@@ -9,6 +19,10 @@ const gateIcons = [
   Binary,    // Gate 2: Entropy Fracture
   Network,   // Gate 3: Logic Maze
   Terminal,  // Gate 4: Bytecode Vault
+  Grid3X3,   // Gate 5: Lattice Citadel
+  Key,       // Gate 6: Wiener's Abyss
+  Cpu,       // Gate 7: ANF Matrix
+  Zap,       // Gate 8: Chrono Apex
 ];
 
 export function GateProgression({ gates }: { gates: readonly GateMeta[] }) {
@@ -24,7 +38,7 @@ export function GateProgression({ gates }: { gates: readonly GateMeta[] }) {
           Difficulty: {DIFFICULTY}
         </span>
         <span>
-          {formatPoints(total)} points in total. Points rise from Gate 1 to Gate 4, and the gates
+          {formatPoints(total)} points in total. Points rise progressively from Gate 1 to Gate 8, and the gates
           can be solved in any order.
         </span>
       </p>

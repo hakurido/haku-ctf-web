@@ -23,7 +23,7 @@ import {
 
 describe("K09: gates.ts matches the c6d13ea agent surface", () => {
   it("has the four gates in order with the baseline points, TTLs, endpoints, and request fields", () => {
-    assert.equal(GATES.length, 4);
+    assert.equal(GATES.length, 8);
     GATES.forEach((g, i) => {
       const b = GATES_BASELINE[i];
       assert.equal(g.number, b.number);
@@ -45,9 +45,9 @@ describe("K09: gates.ts matches the c6d13ea agent surface", () => {
     assert.equal(absoluteUrl("/api/gate2/challenge"), `${URLS_BASELINE.base}/api/gate2/challenge`);
   });
 
-  it("getGate accepts only 1 to 4", () => {
-    for (const n of ["1", "2", "3", "4"]) assert.equal(getGate(n)?.number, Number(n));
-    for (const bad of ["0", "5", "x", "01", " 1", "1.0", ""]) assert.equal(getGate(bad), undefined, JSON.stringify(bad));
+  it("getGate accepts only 1 to 8", () => {
+    for (const n of ["1", "2", "3", "4", "5", "6", "7", "8"]) assert.equal(getGate(n)?.number, Number(n));
+    for (const bad of ["0", "9", "x", "01", " 1", "1.0", ""]) assert.equal(getGate(bad), undefined, JSON.stringify(bad));
   });
 
   it("GATE2_INCREMENT, when gates.ts exports it, is skill.md's C", () => {
@@ -62,7 +62,7 @@ describe("K09: the baseline matches the frozen API at c6d13ea", () => {
     const g2 = challenges.generateGate2Challenge();
     const g3 = challenges.generateGate3Challenge();
     const g4 = challenges.generateGate4Challenge();
-    assert.deepEqual([g2.ttl, g3.ttl, g4.ttl], GATES_BASELINE.slice(1).map((g) => g.ttlSeconds));
+    assert.deepEqual([g2.ttl, g3.ttl, g4.ttl], GATES_BASELINE.slice(1, 4).map((g) => g.ttlSeconds));
     assert.equal(g2.sequence.length, INSTANCE_BASELINE.gate2.sequenceLength);
     assert.equal(g3.variables, INSTANCE_BASELINE.gate3.variables);
     assert.equal(g3.clauses.length, INSTANCE_BASELINE.gate3.clauses);
