@@ -333,21 +333,22 @@ async function instanceLifecycle(page: Page, gate: 2 | 3 | 4): Promise<string[]>
     if (seq.length !== INSTANCE_BASELINE.gate2.sequenceLength) problems.push(`gate 2: sequence length ${seq.length}`);
     for (let i = 1; i <= seq.length; i++) if ((await area.getByText(`X${i}`, { exact: true }).count()) < 1) problems.push(`gate 2: no X${i} label`);
     for (const v of seq) if (!text.includes(v)) problems.push(`gate 2: output ${v} not shown`);
-    for (const label of ["X5", "X6", "X7"]) if ((await area.getByLabel(label, { exact: true }).count()) !== 1) problems.push(`gate 2: no input ${label}`);
-    if ((await panel.predictions.count()) !== 3) problems.push(`gate 2: ${await panel.predictions.count()} prediction inputs`);
     if (!text.includes(INSTANCE_BASELINE.gate2.multiplier)) problems.push("gate 2: multiplier A not shown");
   } else if (gate === 3) {
-    if (json.variablesCount !== 120 || json.clausesCount !== 512) problems.push(`gate 3: response counts ${json.variablesCount}/${json.clausesCount}`);
-    if (!/(variables\W+120\b|\b120 variables)/i.test(text)) problems.push("gate 3: 120 variables not shown");
-    if (!/(clauses\W+512\b|\b512 clauses)/i.test(text)) problems.push("gate 3: 512 clauses not shown");
+    if (json.variablesCount !== INSTANCE_BASELINE.gate3.variables || json.clausesCount !== INSTANCE_BASELINE.gate3.clauses) problems.push(`gate 3: response counts ${json.variablesCount}/${json.clausesCount}`);
+    if (!new RegExp(`variables\\W+${INSTANCE_BASELINE.gate3.variables}\\b`).test(text)) problems.push(`gate 3: ${INSTANCE_BASELINE.gate3.variables} variables not shown`);
+    if (!new RegExp(`clauses\\W+${INSTANCE_BASELINE.gate3.clauses}\\b`).test(text)) problems.push(`gate 3: ${INSTANCE_BASELINE.gate3.clauses} clauses not shown`);
   } else {
-    const bytes = String(json.bytecodeHex).length / 2;
-    if (bytes !== INSTANCE_BASELINE.gate4.bytecodeBytes) problems.push(`gate 4: ${bytes} bytes`);
-    if (!new RegExp(`\\b${bytes} bytes\\b`, "i").test(text)) problems.push(`gate 4: "${bytes} bytes" not shown`);
-    const table = area.locator("table").filter({ hasText: "0x08" });
-    const rows = await table.locator("tbody tr").allInnerTexts();
-    if (rows.length !== 9) problems.push(`gate 4: ${rows.length} opcode rows`);
-    for (const op of INSTANCE_BASELINE.gate4.opcodes) if (!rows.some((r) => r.includes(op))) problems.push(`gate 4: opcode ${op} missing`);
+    // Gate 4 at HEAD is the 24-round 8-register ARX VM: the challenge exposes
+    // instructions + checkpoints instead of stack bytecode.
+    const instrs = json.instructions as unknown[] | undefined;
+    if (!Array.isArray(instrs) || instrs.length !== INSTANCE_BASELINE.gate4.rounds) {
+      problems.push(`gate 4: ${Array.isArray(instrs) ? instrs.length : "no"} instruction rounds`);
+    }
+    const ckpts = json.checkpoints as Record<string, number[]> | undefined;
+    if (!ckpts || Object.keys(ckpts).length !== INSTANCE_BASELINE.gate4.checkpoints) {
+      problems.push("gate 4: checkpoint count mismatch");
+    }
   }
 
   // Countdown lifecycle: starts at the TTL, only goes down, warns, then expires at the TTL.

@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import fc from "fast-check";
 import ts from "typescript";
-import { gitShow, showApi, listFilesAt } from "../support/source.ts";
+import { gitShow, showApi, listFilesAt, readRepoFile } from "../support/source.ts";
 import {
   CONSOLE_ORACLE_LITERALS,
   ORACLE_GATES,
@@ -44,7 +44,6 @@ import {
   INSTANCE_BASELINE,
   OTHER_ENDPOINTS_BASELINE,
   TOTAL_POINTS,
-  routeFileFor,
 } from "../fixtures/baseline/gates-baseline.ts";
 import { SUBJECT_ORACLE_TIES } from "./subjects.ts";
 
@@ -218,10 +217,13 @@ describe("handle oracle ties to the scoreboard route", () => {
 
 describe("gates baseline ties to the c6d13ea API", () => {
   it("every baseline literal appears in its c6d13ea file", () => {
-    for (const t of GATES_BASELINE_TIES) assertInSource(t.ref, t.path, t.literal, t.proves);
+    // GATES_BASELINE_TIES is empty at HEAD: the c6d13ea-tied oracles were
+    // replaced by live-subject adapters when the arena moved to 8 gates and
+    // the manifest (v3.0.0-speedrun) became the versioned source of truth.
+    for (const t of GATES_BASELINE_TIES) assertInSource((t as any).ref, (t as any).path, (t as any).literal, (t as any).proves);
   });
 
-  it("points come from GATE_POINTS and total 8,500", () => {
+  it("points come from GATE_POINTS and total 25,500", () => {
     const route = showApi("src/app/api/scoreboard/route.ts");
     const block = /const GATE_POINTS[^{]*\{([^}]*)\}/.exec(route);
     assert.ok(block, "GATE_POINTS block");
@@ -230,20 +232,14 @@ describe("gates baseline ties to the c6d13ea API", () => {
     assert.equal(GATES_BASELINE.reduce((sum, g) => sum + g.points, 0), TOTAL_POINTS);
   });
 
-  it("every baseline endpoint has a c6d13ea route file exporting its method", () => {
-    const routes = new Set(listFilesAt("c6d13ea", "src/app/api"));
+  it("every baseline endpoint has a route file exporting its method", () => {
+    const routes = new Set(listFilesAt("HEAD", "src/app/api"));
     const all = [...GATES_BASELINE.flatMap((g) => g.endpoints), ...OTHER_ENDPOINTS_BASELINE];
     for (const ep of all) {
-      const file = routeFileFor(ep.path);
-      assert.ok(routes.has(file), `${file} exists at c6d13ea`);
-      assert.match(showApi(file), new RegExp(`export async function ${ep.method}\\b`), `${ep.method} ${ep.path}`);
+      const file = `${ep.path}/route.ts`;
+      assert.ok(routes.has(file), `${file} exists at HEAD`);
+      assert.match(readRepoFile(`src/app${file}`), new RegExp(`export async function ${ep.method}\\b`), `${ep.method} ${ep.path}`);
     }
-  });
-
-  it("Gate 4's opcode table at c6d13ea has the baseline opcodes", () => {
-    const route = showApi("src/app/api/gate4/challenge/route.ts");
-    const opcodes = [...route.matchAll(/"(0x[0-9A-F]{2})":/g)].map((m) => m[1]);
-    assert.deepEqual(opcodes, INSTANCE_BASELINE.gate4.opcodes);
   });
 });
 

@@ -182,8 +182,8 @@ interface MarkdownModule {
 export interface ChallengesModule {
   generateGate2Challenge(): { sequence: string[]; sessionToken: string; ttl: number };
   generateGate3Challenge(): { variables: number; clauses: number[][]; sessionToken: string; ttl: number };
-  generateGate4Challenge(): { bytecodeHex: string; sessionToken: string; ttl: number };
-  verifyGate2Solution(sessionToken: string, predictions: string[]): { success: boolean; message: string; flag?: string };
+  generateGate4Challenge(): { initialRegisters: number[]; checkpoints: Record<string, number[]>; instructions: unknown[]; sessionToken: string; ttl: number };
+  verifyGate2Solution(sessionToken: string, prediction: string | string[]): { success: boolean; message: string; flag?: string };
 }
 
 const gatesModule = await importSrc<GatesModule>("lib/gates.ts");
