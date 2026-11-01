@@ -37,7 +37,7 @@ export function GateProgression({ gates }: { gates: readonly GateMeta[] }) {
           return (
             <li
               key={gate.number}
-              className="flex flex-col justify-between rounded-lg border border-line bg-surface p-5 hover:border-line-control transition-colors"
+              className="flex flex-col justify-between rounded-lg border border-line border-t-2 border-t-accent/50 bg-surface p-5 hover:border-accent/50 hover:shadow-glow transition-[border-color,box-shadow]"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3">

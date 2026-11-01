@@ -237,7 +237,10 @@ const ENFORCEMENT_PATTERNS: readonly RegExp[] = [
   /-\[#/,
   /\b(?:text|bg|border|ring|fill|stroke)-(?:zinc|slate|gray|neutral|stone|red|green|emerald|blue|cyan|yellow|amber)-\d/,
   /text-\[\d/,
-  /scanlines|matrix-grid|glow|bg-gradient|bg-clip-text/,
+  // 2.1 (hybrid look, approved by the user): the `shadow-glow` and
+  // `shadow-glow-strong` token utilities from globals.css are allowed. Any other
+  // glow, scanline, grid class, gradient utility, or gradient text still matches.
+  /scanlines|matrix-grid|(?<!shadow-)glow|bg-gradient|bg-clip-text/,
 ];
 
 test("M-18 (2.2, 2.4) enforcement search over U returns no matches", () => {

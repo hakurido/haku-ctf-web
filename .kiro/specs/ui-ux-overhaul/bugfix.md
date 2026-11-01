@@ -112,7 +112,7 @@ The user has reviewed A1 to A13. A1 to A6, A8, A9, and A11 to A13 are confirmed 
 
 ### Expected Behavior (Correct)
 
-2.1 WHEN any view loads THEN the system SHALL render no scanline overlay, grid background, text or box glow, or gradient text, and the global stylesheet SHALL contain no decorative classes or color variables outside the token set.
+2.1 WHEN any view loads THEN the system SHALL render no scanline overlay, text glow, or gradient text, and the global stylesheet SHALL contain no decorative classes or color variables outside the token set. Two effects are allowed for the cyber look the user approved on 2026-11-01: a faint grid on `body`, defined once in globals.css behind solid surfaces, and the `--shadow-glow` / `--shadow-glow-strong` accent halo, used only on primary actions, the current nav and gate item, the wordmark, the hero rule, and hovered gate cards. Neither effect may lower a token contrast pair below its minimum or act as a focus indicator.
 
 2.2 WHEN colors render THEN the system SHALL take every color from one token set defined once, covering neutral surfaces, text, borders, one accent, and success, error, and warning. Component markup SHALL contain no raw color values (hex, rgb, oklch) and no default palette classes such as zinc-500 or red-400.
 

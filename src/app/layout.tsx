@@ -58,8 +58,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // The one allowed hex exception (M-18): themeColor needs a literal color.
-  // It is the sRGB rendering of the canvas token.
-  themeColor: "#111315",
+  // It is the sRGB rendering of the canvas token in globals.css.
+  themeColor: "#060f10",
   width: "device-width",
   initialScale: 1,
 };

@@ -65,7 +65,7 @@ export function PrimaryNav() {
                   aria-current={isExact ? "page" : isCurrent ? "true" : undefined}
                   className={`relative flex items-center justify-center min-h-9 px-1.5 sm:px-3 rounded-md text-ui font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                     isCurrent
-                      ? "text-fg bg-surface-hover font-semibold after:absolute after:inset-x-1.5 sm:after:inset-x-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-accent"
+                      ? "text-fg bg-surface-hover font-semibold after:absolute after:inset-x-1.5 sm:after:inset-x-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-accent after:shadow-glow"
                       : "text-fg-secondary hover:text-fg hover:bg-surface-hover"
                   }`}
                 >

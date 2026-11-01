@@ -44,7 +44,7 @@ export function FlagDialog() {
         size="md"
         onClick={openDialog}
         aria-haspopup="dialog"
-        className="font-medium"
+        className="font-medium whitespace-nowrap"
       >
         Submit flag
       </Button>
@@ -54,7 +54,7 @@ export function FlagDialog() {
         // Fires for Escape, the Close button, and the route-change close.
         onClose={() => setFlagDialogOpen(false)}
         aria-labelledby={headingId}
-        className="w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-line bg-surface p-5 text-fg shadow-dialog backdrop:bg-backdrop motion-safe:animate-dialog-in"
+        className="w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-accent/40 border-t-2 border-t-accent bg-surface p-5 text-fg shadow-dialog backdrop:bg-backdrop motion-safe:animate-dialog-in"
       >
         <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
           <h2 id={headingId} className="text-title text-fg font-semibold">

@@ -15,7 +15,7 @@ export function GateStepper({ current }: { current: GateNumber }) {
                 aria-current={isCurrent ? "page" : undefined}
                 className={`flex h-full flex-col p-3 rounded-md border text-left transition-colors ${
                   isCurrent
-                    ? "border-accent border-l-4 bg-surface-hover text-fg"
+                    ? "border-accent border-l-4 bg-surface-hover text-fg shadow-glow"
                     : "border-line bg-surface text-fg-secondary hover:border-line-control hover:text-fg"
                 }`}
               >

@@ -1,35 +1,45 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: oklch(0.185 0.005 260);
-  --color-surface: oklch(0.218 0.006 260);
-  --color-inset: oklch(0.155 0.005 260);
-  --color-surface-hover: oklch(0.255 0.007 260);
-  --color-line: oklch(0.300 0.008 260);
-  --color-line-control: oklch(0.560 0.010 260);
-  --color-fg: oklch(0.955 0.003 260);
-  --color-fg-secondary: oklch(0.800 0.008 260);
-  --color-fg-muted: oklch(0.710 0.010 260);
-  --color-fg-disabled: oklch(0.500 0.008 260);
-  --color-accent: oklch(0.790 0.110 225);
-  --color-accent-hover: oklch(0.850 0.090 225);
-  --color-accent-active: oklch(0.730 0.115 225);
-  --color-on-accent: oklch(0.180 0.020 240);
-  --color-accent-subtle: oklch(0.300 0.050 225);
-  --color-success: oklch(0.790 0.150 150);
-  --color-success-subtle: oklch(0.270 0.045 150);
-  --color-error: oklch(0.740 0.140 25);
-  --color-error-subtle: oklch(0.270 0.055 25);
-  --color-warning: oklch(0.840 0.130 75);
-  --color-warning-subtle: oklch(0.280 0.045 75);
-  --color-focus: oklch(0.850 0.090 225);
-  --color-backdrop: oklch(0.100 0.004 260 / 0.75);
+  /* Cyber palette: near-black teal neutrals with a neon cyan accent. Every
+     pair in the contrast table (tests/unit/contrast.test.ts) passes, and every
+     token is inside the sRGB gamut. */
+  --color-canvas: oklch(0.160 0.014 205);
+  --color-surface: oklch(0.195 0.016 205);
+  --color-inset: oklch(0.135 0.012 205);
+  --color-surface-hover: oklch(0.240 0.020 205);
+  --color-line: oklch(0.310 0.030 205);
+  --color-line-control: oklch(0.580 0.045 205);
+  --color-fg: oklch(0.960 0.010 205);
+  --color-fg-secondary: oklch(0.830 0.020 205);
+  --color-fg-muted: oklch(0.730 0.025 205);
+  --color-fg-disabled: oklch(0.500 0.020 205);
+  --color-accent: oklch(0.860 0.135 195);
+  --color-accent-hover: oklch(0.910 0.110 195);
+  --color-accent-active: oklch(0.790 0.115 195);
+  --color-on-accent: oklch(0.160 0.020 205);
+  --color-accent-subtle: oklch(0.290 0.045 195);
+  --color-success: oklch(0.840 0.170 150);
+  --color-success-subtle: oklch(0.270 0.055 150);
+  --color-error: oklch(0.740 0.140 22);
+  --color-error-subtle: oklch(0.270 0.065 20);
+  --color-warning: oklch(0.850 0.140 80);
+  --color-warning-subtle: oklch(0.280 0.050 80);
+  --color-focus: oklch(0.910 0.110 195);
+  --color-backdrop: oklch(0.090 0.010 205 / 0.8);
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  /* Sharp corners for the terminal look. */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
 
   --shadow-dialog: 0 24px 48px -16px oklch(0 0 0 / 0.6);
+  /* The one approved glow (2.1, hybrid look): a soft accent halo for primary
+     actions, the current nav item, and the hero rule. Its spread is negative,
+     so it never reads as a focus ring; focus stays on the outline. */
+  --shadow-glow: 0 0 18px -4px color-mix(in oklch, var(--color-accent) 55%, transparent);
+  --shadow-glow-strong: 0 0 24px -2px color-mix(in oklch, var(--color-accent) 65%, transparent);
 
   --text-caption: 0.75rem;     --text-caption--line-height: 1rem;
   --text-ui: 0.875rem;         --text-ui--line-height: 1.25rem;
@@ -71,6 +81,15 @@
     font-size: var(--text-ui);
     line-height: var(--text-ui--line-height);
     -webkit-font-smoothing: antialiased;
+    /* The one approved background (2.1, hybrid look): a faint 32px grid that
+       fades out toward the bottom. It sits behind every surface, which keeps
+       its own solid color, so text contrast is measured against the token. */
+    background-image:
+      linear-gradient(to bottom, transparent, var(--color-canvas) 70vh),
+      linear-gradient(color-mix(in oklch, var(--color-line) 45%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklch, var(--color-line) 45%, transparent) 1px, transparent 1px);
+    background-size: 100% 100%, 32px 32px, 32px 32px;
+    background-repeat: no-repeat, repeat, repeat;
   }
   ::selection { background-color: var(--color-accent-subtle); color: var(--color-fg); }
   :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }

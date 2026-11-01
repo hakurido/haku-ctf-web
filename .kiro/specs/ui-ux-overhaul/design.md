@@ -449,7 +449,7 @@ Rules:
 - **Vertical rhythm.** Header 56px (`h-14`). Space between page title and content `mt-6`. Between sections `gap-12`, `lg:gap-16`. Inside cards `gap-4`.
 - **Shell rows (R3).** At every width the shell is two rows: the header row (brand and actions), then the nav row. The nav list is `flex flex-wrap gap-1` and every item is `whitespace-nowrap`. Labels then never wrap or clip at 360px, and if the five items don't fit on one line the list wraps onto a second line.
 - **Gate page.** At `lg` and above, two columns: reference (description, endpoints, payload fields) and try-it, split 5:7. Single column below `lg`.
-- **Elevation.** Lightness steps only: inset < canvas < surface < surface-hover. The dialog is the only element with a shadow (`shadow-dialog`, black, no hue). No glows, colored shadows, hover lifts, or blurs.
+- **Elevation.** Lightness steps only: inset < canvas < surface < surface-hover. The dialog is the only element with a drop shadow (`shadow-dialog`, black, no hue). The one colored shadow is the approved accent halo (`shadow-glow`, `shadow-glow-strong`, see 2.1), limited to primary actions, the current nav and gate item, the wordmark, the hero rule, and hovered gate cards. No hover lifts or blurs.
 
 #### Control variants and states
 
