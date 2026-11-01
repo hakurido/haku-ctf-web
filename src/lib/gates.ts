@@ -15,7 +15,7 @@ export const GATE1_RULES = {
   minLength: MANIFEST.gates[1].minLength,
   maxLength: MANIFEST.gates[1].maxLength,
   powBits: MANIFEST.gates[1].powBits,
-  hashPrefix: "00000",
+  hashPrefix: "000000",
 } as const;
 
 export interface Endpoint {

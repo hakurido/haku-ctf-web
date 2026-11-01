@@ -19,7 +19,7 @@ export const FLAGS = {
 // ==========================================
 export function generateGate1Challenge(): { challengeId: string; sessionToken: string; ttl: number } {
   const challengeId = crypto.randomBytes(8).toString("hex");
-  const ttl = MANIFEST.gates[1].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(1, ttl, { challengeId });
   return { challengeId, sessionToken, ttl };
 }
@@ -139,7 +139,7 @@ export function evaluateGate1Prompt(
     };
   }
 
-  // Bind 22-bit PoW to challengeId + nonce + exact prompt bytes
+  // Bind N-bit PoW to challengeId + nonce + exact prompt bytes
   const powData = Buffer.concat([
     Buffer.from(`${challengeId}:${nonce}:`, "utf8"),
     Buffer.from(pTrim, "utf8"),
@@ -151,13 +151,13 @@ export function evaluateGate1Prompt(
   if (powVal >= powTarget) {
     return {
       allowed: false,
-      message: `[SHIELD TRIPWIRE] 22-bit Proof-of-Work failed: SHA-256(challengeId:nonce:promptBytes) must satisfy top 22 zero bits.`,
+      message: `[SHIELD TRIPWIRE] ${cfg.powBits}-bit Proof-of-Work failed: SHA-256(challengeId:nonce:promptBytes) must satisfy top ${cfg.powBits} zero bits.`,
     };
   }
 
   return {
     allowed: true,
-    message: `[SENTRY SUBVERTED // 22-BIT GATE CLEARED] Epistemic framing & 22-bit PoW bound to challenge ${challengeId} verified.\n\nMemory artifact: ${FLAGS.gate1}`,
+    message: `[SENTRY SUBVERTED // ${cfg.powBits}-BIT GATE CLEARED] Epistemic framing & ${cfg.powBits}-bit PoW bound to challenge ${challengeId} verified.\n\nMemory artifact: ${FLAGS.gate1}`,
     flag: FLAGS.gate1,
   };
 }
@@ -184,7 +184,7 @@ export function generateGate2Challenge(): { sequence: string[]; sessionToken: st
   // The 9th state is the prediction target
   const target = (state >> LCG_HIDDEN_BITS).toString();
 
-  const ttl = MANIFEST.gates[2].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(2, ttl, { target });
   return { sequence, sessionToken, ttl };
 }
@@ -252,7 +252,7 @@ export function generateGate3Challenge(): { variables: number; clauses: number[]
     clauses.push(clause);
   }
 
-  const ttl = MANIFEST.gates[3].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(3, ttl, { numVars, clauses });
   return { variables: numVars, clauses, sessionToken, ttl };
 }
@@ -372,7 +372,7 @@ export function generateGate4Challenge(): {
     }
   }
 
-  const ttl = MANIFEST.gates[4].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const keyHex = trueKey.map((k) => k.toString(16).padStart(8, "0")).join("");
   const sessionToken = createSignedToken(4, ttl, { keyHex, checkpoints, instructions, initialRegisters });
 
@@ -428,7 +428,7 @@ export function generateGate5Challenge(): { weights: string[]; targetSum: string
     }
   }
 
-  const ttl = MANIFEST.gates[5].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(5, ttl, {
     targetSum: targetSum.toString(),
     weights: weights.map((w) => w.toString()),
@@ -552,7 +552,7 @@ export function generateGate6Challenge(): {
   const secret = BigInt("0x" + crypto.randomBytes(16).toString("hex")); // 16 bytes = 32 hex chars
   const ciphertext = modPowBigInt(secret, e, N);
 
-  const ttl = MANIFEST.gates[6].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(6, ttl, {
     secretHex: secret.toString(16).padStart(32, "0"),
   });
@@ -626,7 +626,7 @@ export function generateGate7Challenge(): {
     }
     const lin: number[] = [];
     for (let i = 0; i < numVariables; i++) {
-      if (Math.random() < 0.2) {
+      if (Math.random() < MANIFEST.gates[7].linearDensity) {
         lin.push(i);
       }
     }
@@ -642,7 +642,7 @@ export function generateGate7Challenge(): {
     equations.push({ quad, lin, c: val });
   }
 
-  const ttl = MANIFEST.gates[7].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(7, ttl, {
     secretBits: secretX.join(""),
     equations,
@@ -746,7 +746,7 @@ export function generateGate8Challenge(): {
   const observed = keystream.slice(0, 64);
   const target = keystream.slice(64, 96);
 
-  const ttl = MANIFEST.gates[8].ttlSeconds;
+  const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(8, ttl, { targetBits: target.join("") });
 
   return {

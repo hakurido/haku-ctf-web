@@ -130,6 +130,12 @@ export const GATE2_INCREMENT_BASELINE = "1442695040888963407";
 
 export const GATES_BASELINE_TIES = Object.freeze([]);
 
+export const OTHER_ENDPOINTS_BASELINE = Object.freeze([
+  { method: "POST", path: "/api/run" },
+  { method: "GET", path: "/api/run" },
+  { method: "GET", path: "/api/skill" },
+]);
+
 export const URLS_BASELINE = Object.freeze({
   base: "https://ctf.hakudigital.tech",
   skill: "https://ctf.hakudigital.tech/skill.md",

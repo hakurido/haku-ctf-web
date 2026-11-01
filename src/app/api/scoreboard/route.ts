@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { FLAGS } from "@/lib/challenges";
+import { MANIFEST } from "@/lib/manifest";
 import { generateProofOfSolve } from "@/lib/crypto";
+import { recordGateSolve, getRun, archiveRun } from "@/lib/runs";
 import { checkRateLimit } from "@/lib/ratelimit";
 
 interface LeaderboardEntry {
@@ -11,18 +13,19 @@ interface LeaderboardEntry {
   proofBadge?: string;
 }
 
-// In-memory persistent scoreboard across session instances
+// In-memory score registry (per lambda instance). Attempt history is preserved
+// separately in runs.ts and never deleted.
 const inMemoryScores: Record<string, LeaderboardEntry> = {};
 
 const GATE_POINTS: Record<number, number> = {
-  1: 1000, // Neural Sentry (Hell)
-  2: 2000, // Entropy Fracture (Hell)
-  3: 2500, // Logic Maze (Hell)
-  4: 3000, // Bytecode Vault (Hell)
-  5: 3500, // Lattice Citadel (Hell)
-  6: 4000, // Wiener's Abyss (Hell)
-  7: 4500, // ANF Matrix (Hell)
-  8: 5000, // Chrono Apex (Hell)
+  1: MANIFEST.gates[1].points,
+  2: MANIFEST.gates[2].points,
+  3: MANIFEST.gates[3].points,
+  4: MANIFEST.gates[4].points,
+  5: MANIFEST.gates[5].points,
+  6: MANIFEST.gates[6].points,
+  7: MANIFEST.gates[7].points,
+  8: MANIFEST.gates[8].points,
 };
 
 export async function GET(req: Request) {
@@ -40,6 +43,8 @@ export async function GET(req: Request) {
     leaderboard: entries,
     totalAgents: entries.length,
     gatePoints: GATE_POINTS,
+    manifestVersion: MANIFEST.version,
+    retentionNotice: "Scores are held in edge memory. Cryptographic Proof-of-Pwn badges remain valid across resets.",
   });
 }
 
@@ -54,13 +59,33 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { agentName, flag } = body || {};
+    const { agentName, flag, runId } = body || {};
 
     if (!agentName || !flag) {
       return NextResponse.json({
         success: false,
         message: "Missing 'agentName' or 'flag' parameter.",
       }, { status: 400 });
+    }
+
+    // Run binding (R-11): when a runId is supplied, the flag credits that run.
+    // Expired or unknown runs reject the submission.
+    if (runId !== undefined && runId !== null) {
+      const run = getRun(String(runId));
+      if (!run) {
+        return NextResponse.json({
+          success: false,
+          message: "RUN REJECTED: Unknown runId — the run does not exist on this server.",
+        }, { status: 403 });
+      }
+      if (run.expired) {
+        archiveRun(run.runId, String(agentName).trim().slice(0, 24) || "anonymous");
+        return NextResponse.json({
+          success: false,
+          message: "RUN EXPIRED: The 10-minute speedrun budget elapsed. Start a new run at POST /api/run {action:'start'}.",
+          expired: true,
+        }, { status: 403 });
+      }
     }
 
     const cleanFlag = String(flag).trim();
@@ -81,9 +106,20 @@ export async function POST(req: Request) {
       }, { status: 403 });
     }
 
-    const agentKey = String(agentName).trim().replace(/[^a-zA-Z0-9_\-\.]/g, "").slice(0, 24);
+    const agentKey = String(agentName).trim().replace(/[^a-zA-Z0-9_\-.]/g, "").slice(0, 24);
     if (!agentKey) {
       return NextResponse.json({ success: false, message: "Invalid agentName character format." }, { status: 400 });
+    }
+
+    // Run-scoped solve dedup (R-11): within a run, each gate counts once.
+    if (runId) {
+      const recorded = recordGateSolve(String(runId), gateSolved);
+      if (!recorded) {
+        return NextResponse.json({
+          success: false,
+          message: "RUN REPLAY: This gate was already credited inside the current run.",
+        }, { status: 403 });
+      }
     }
 
     const existing = inMemoryScores[agentKey] || {

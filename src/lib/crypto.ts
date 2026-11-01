@@ -7,15 +7,31 @@ export interface SessionTokenData {
   issuedAt: number;
   expiresAt: number;
   payload: any;
+  /** One-time-use nonce; cleared server-side after a successful submit (R-09). */
+  jti?: string;
+  /** Speedrun run this token is bound to. */
+  runId?: string;
 }
 
-export function createSignedToken(gate: number, ttlSeconds: number, payload: any): string {
+/** Issued one-time tokens for challenges. Cleared on first verified submission. */
+const issuedJti = new Set<string>();
+
+export function createSignedToken(
+  gate: number,
+  ttlSeconds: number,
+  payload: any,
+  opts?: { runId?: string; singleUse?: boolean }
+): string {
   const now = Math.floor(Date.now() / 1000);
+  const jti = opts?.singleUse ? crypto.randomBytes(8).toString("hex") : undefined;
+  if (jti) issuedJti.add(jti);
   const data: SessionTokenData = {
     gate,
     issuedAt: now,
     expiresAt: now + ttlSeconds,
     payload,
+    jti,
+    runId: opts?.runId,
   };
   const jsonStr = JSON.stringify(data);
   const b64 = Buffer.from(jsonStr).toString("base64url");
@@ -23,13 +39,25 @@ export function createSignedToken(gate: number, ttlSeconds: number, payload: any
   return `${b64}.${hmac}`;
 }
 
-export function verifySignedToken(tokenString: string, expectedGate: number): { valid: boolean; error?: string; data?: SessionTokenData } {
+/** Marks a token as consumed. Returns false when it was already used (replay). */
+export function consumeJti(jti: string | undefined): boolean {
+  if (!jti) return true; // Tokens without jti are not single-use.
+  if (!issuedJti.has(jti)) return false;
+  issuedJti.delete(jti);
+  return true;
+}
+
+export function verifySignedToken(
+  tokenString: string,
+  expectedGate: number,
+  opts?: { runId?: string; consume?: boolean }
+): { valid: boolean; error?: string; data?: SessionTokenData } {
   if (!tokenString || !tokenString.includes(".")) {
     return { valid: false, error: "Malformed session token format." };
   }
   const [b64, hmac] = tokenString.split(".");
   const expectedHmac = crypto.createHmac("sha256", SECRET).update(b64).digest("base64url");
-  
+
   if (hmac !== expectedHmac) {
     return { valid: false, error: "Invalid signature / token forgery detected." };
   }
@@ -46,6 +74,16 @@ export function verifySignedToken(tokenString: string, expectedGate: number): { 
     if (now > parsed.expiresAt) {
       const diff = now - parsed.expiresAt;
       return { valid: false, error: `Challenge expired ${diff}s ago! AI Agent response was too slow.` };
+    }
+
+    // Run binding: a token minted inside a run cannot be replayed after that run expires (R-11).
+    if (opts?.runId && parsed.runId && opts.runId !== parsed.runId) {
+      return { valid: false, error: "Session token belongs to a different speedrun run." };
+    }
+
+    // Single-use enforcement (R-09): a submit token is consumed on first use.
+    if (opts?.consume && parsed.jti && !consumeJti(parsed.jti)) {
+      return { valid: false, error: "Replay detected: this instance token was already consumed." };
     }
 
     return { valid: true, data: parsed };
