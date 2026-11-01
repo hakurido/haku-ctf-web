@@ -78,8 +78,17 @@ export interface Gate3Challenge extends ChallengeBase<3> {
 }
 
 export interface Gate4Challenge extends ChallengeBase<4> {
-  vmSpec: { opcodes: Record<string, string> };
-  bytecodeHex: string;
+  vmSpec: {
+    architecture: string;
+    registers: string[];
+    wordSize: string;
+    rounds: number;
+    checkpoints: number[];
+    roundFormula: string;
+  };
+  initialRegisters: number[];
+  checkpoints: Record<number, number[]>;
+  instructions: any[];
   payloadSchema: { sessionToken: string; keyHex: string };
 }
 
@@ -124,7 +133,7 @@ export interface GateSubmitResponse {
 }
 
 export interface SubmitBodyByGate {
-  2: { sessionToken: string; predictions: [string, string, string] };
+  2: { sessionToken: string; prediction?: string | number; predictions?: [string, string, string] | string[] };
   3: { sessionToken: string; assignment: JsonValue };
   4: { sessionToken: string; keyHex: string };
   5: { sessionToken: string; solution: string | number[] | boolean[] };
@@ -260,7 +269,7 @@ export async function getChallenge<G extends InstanceGate>(
     if (!isRecord(b) || typeof b.sessionToken !== "string" || b.sessionToken.length === 0) return false;
     if (gate === 2) return Array.isArray(b.sequence);
     if (gate === 3) return Array.isArray(b.clauses);
-    if (gate === 4) return typeof b.bytecodeHex === "string";
+    if (gate === 4) return Array.isArray(b.initialRegisters) || typeof b.bytecodeHex === "string";
     if (gate === 5) return Array.isArray(b.weights);
     if (gate === 6) return typeof b.ciphertext === "string";
     if (gate === 7) return Array.isArray(b.equations);

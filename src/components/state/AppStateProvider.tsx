@@ -265,10 +265,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
       let send: () => Promise<ApiResult<GateSubmitResponse>>;
       if (gate === 2) {
-        const [x5, x6, x7] = state.gate2.inputs;
+        const [x9, x10, x11] = state.gate2.inputs;
         const body: SubmitBodyByGate[2] = {
           sessionToken,
-          predictions: [x5.trim(), x6.trim(), x7.trim()],
+          prediction: x9.trim(),
+          predictions: [x9.trim(), x10.trim(), x11.trim()],
         };
         send = () => submitGate(2, body);
       } else if (gate === 3) {

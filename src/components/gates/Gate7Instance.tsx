@@ -50,13 +50,13 @@ export function Gate7Instance({ data, readOnly }: Gate7InstanceProps) {
 
       <div>
         <TextField
-          label="Root vector (20 bits or 5 hex chars)"
-          description="20-bit binary string (e.g. 101011...) or 5-hex-character string representing x_0 to x_19."
+          label="Root vector (22 bits)"
+          description="22-bit binary string (e.g. 101011...) representing x_0 to x_21."
           mono
           value={state.gate7.inputs}
           onChange={(e) => setField("gate7.inputs", e.target.value)}
           disabled={readOnly}
-          placeholder="e.g. 10110010110101010010 or b2d52"
+          placeholder="e.g. 1011001011010101001011"
         />
       </div>
     </div>

@@ -16,29 +16,24 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 4,
     name: "BYTECODE VAULT",
-    description: "Custom 9-opcode Stack VM with 16 rounds of chained non-linear feedback and 128-bit key. Decompile and reverse-engineer the 16-byte key (32 hex characters) before timeout.",
+    description: "24-round ARX Virtual Machine with 8 32-bit registers, 4 intermediate checkpoints, and 128-bit master key. Solve for keyHex (32 hex characters) before expiration.",
     vmSpec: {
-      architecture: "8-bit stack machine",
-      registers: "none (pure stack)",
-      opcodes: {
-        "0x01": "PUSH_KEY_BYTE (takes 1 byte operand: key index 0..15)",
-        "0x02": "PUSH_CONST (takes 1 byte immediate operand)",
-        "0x03": "XOR (pops B, A -> pushes A ^ B)",
-        "0x04": "ADD (pops B, A -> pushes (A + B) mod 256)",
-        "0x05": "SUB (pops B, A -> pushes (A - B) mod 256)",
-        "0x06": "ROTL (takes 1 byte operand r: pops A -> pushes (A <<< r) mod 256)",
-        "0x07": "ASSERT_EQ_POP (pops B, A -> asserts A == B, fails if false)",
-        "0x08": "DUP (duplicates top of stack)",
-        "0xFF": "HALT_SUCCESS"
-      }
+      architecture: "8-register 32-bit ARX machine",
+      registers: ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+      wordSize: "32-bit unsigned integer (wrapping modulo 2^32)",
+      rounds: 24,
+      checkpoints: [5, 11, 17, 23],
+      roundFormula: "R[dst] = rotl32((R[dst] + R[src] + c) ^ K[k_idx], rot) [mod 2^32]",
     },
-    bytecodeHex: challenge.bytecodeHex,
+    initialRegisters: challenge.initialRegisters,
+    checkpoints: challenge.checkpoints,
+    instructions: challenge.instructions,
     sessionToken: challenge.sessionToken,
     ttlSeconds: challenge.ttl,
     submitEndpoint: "POST /api/gate4/submit",
     payloadSchema: {
       sessionToken: "string",
-      keyHex: "string (32 hex characters representing 16-byte key)"
-    }
+      keyHex: "string (32 hex characters representing 4 x 32-bit key words K0..K3)",
+    },
   });
 }

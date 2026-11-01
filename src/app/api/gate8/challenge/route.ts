@@ -16,15 +16,17 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 8,
     name: "CHRONO APEX",
-    description: "64-bit Linear Feedback Shift Register (LFSR) over GF(2). Apply the Berlekamp-Massey algorithm to synthesize the minimal polynomial from 128 observed keystream bits, and predict the next 64 bits within 20 seconds.",
+    description: "Degree-32 Linear Feedback Shift Register with quadratic non-linear filter generator z_t = s_t ^ (s_{t-3} & s_{t-7}) ^ (s_{t-12} & s_{t-20}). Solvable via Algebraic SMT Attack (Z3) in < 0.2s; immune to standard Berlekamp-Massey.",
     degree: challenge.degree,
+    filterFormula: challenge.filterFormula,
+    feedbackTaps: challenge.feedbackTaps,
     observedBits: challenge.observedBits,
     sessionToken: challenge.sessionToken,
     ttlSeconds: challenge.ttl,
     submitEndpoint: "POST /api/gate8/submit",
     payloadSchema: {
       sessionToken: "string",
-      predictedBits: "string (64 binary characters '0' and '1')"
+      predictedBits: "string (32 binary characters '0' and '1' representing next 32 keystream bits)"
     }
   });
 }

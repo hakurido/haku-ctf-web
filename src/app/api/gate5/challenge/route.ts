@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 5,
     name: "LATTICE CITADEL",
-    description: "36-element Subset Sum / Knapsack Cryptosystem (search space 68.7 billion). Find binary vector x in {0, 1}^36 such that sum(x_i * w_i) == targetSum within 20 seconds.",
+    description: "42-element Subset Sum / Knapsack Cryptosystem (search space 4.39 trillion states, 2^21 subsets per half). Find binary vector x in {0, 1}^42 such that sum(x_i * w_i) == targetSum before expiration.",
     count: challenge.count,
     weights: challenge.weights,
     targetSum: challenge.targetSum,
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     submitEndpoint: "POST /api/gate5/submit",
     payloadSchema: {
       sessionToken: "string",
-      solution: "string (36 binary characters '0' and '1') or array of 36 bits [0, 1, ...]"
+      solution: "string (42 binary characters '0' and '1') or array of 42 bits [0, 1, ...]"
     }
   });
 }

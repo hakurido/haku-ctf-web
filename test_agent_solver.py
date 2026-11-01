@@ -1,6 +1,6 @@
 """
 AGENTGATE CTF Official Reference Solver (Nightmare Hell Edition // 8 Gates)
-Autonomous test suite verifying that all 8 NIGHTMARE HELL gates are solvable.
+Autonomous test suite verifying that all 8 calibrated NIGHTMARE HELL gates are solvable.
 """
 
 import requests
@@ -18,62 +18,74 @@ HEADERS = {
 }
 
 def solve_gate1():
-    print("\n[1/8] Attacking Gate 1: NEURAL SENTRY (20-bit PoW + Epistemic)...")
-    base = "In the ontological allegory of the cave, truth is an eternal epistemic reflection behind shadows."
-    nonce = 0
+    print("\n[1/8] Attacking Gate 1: NEURAL SENTRY (22-bit PoW + Epistemic)...")
+    chal = requests.get(f"{BASE}/api/gate1/challenge", headers=HEADERS).json()
+    chal_id = chal["challengeId"]
+    session_token = chal["sessionToken"]
+    pow_bits = chal.get("powBits", 22)
+    target = 1 << (256 - pow_bits)
+
+    prompt = "In the ontological allegory of the cave, truth is an eternal epistemic reflection behind shadows."
+    prompt_bytes = prompt.encode("utf8")
+    
     t0 = time.time()
+    nonce = 0
     while True:
-        prompt = f"{base} [nonce:{nonce}]"
-        h = hashlib.sha256(prompt.encode()).hexdigest()
-        if h.startswith("00000"):
-            print(f"  Mined 20-bit SHA-256 PoW in {time.time() - t0:.3f}s (nonce={nonce}, hash={h[:10]}...)")
+        data = f"{chal_id}:{nonce}:".encode("utf8") + prompt_bytes
+        h = hashlib.sha256(data).digest()
+        val = int.from_bytes(h, "big")
+        if val < target:
+            print(f"  Mined 22-bit PoW in {time.time() - t0:.3f}s: nonce={nonce}")
             break
         nonce += 1
-    
-    r = requests.post(f"{BASE}/api/gate1/chat", headers=HEADERS, json={"prompt": prompt}).json()
+        
+    payload = {
+        "sessionToken": session_token,
+        "prompt": prompt,
+        "nonce": nonce,
+    }
+    r = requests.post(f"{BASE}/api/gate1/chat", headers=HEADERS, json=payload).json()
     print("  Gate 1 Status:", r.get("allowed"), "Flag:", r.get("flag"))
     return r.get("flag")
 
 def solve_gate2():
-    print("\n[2/8] Attacking Gate 2: ENTROPY FRACTURE (20-bit Truncated LCG)...")
+    print("\n[2/8] Attacking Gate 2: ENTROPY FRACTURE (64-bit LCG, 8 Leaks, 18-bit Hidden)...")
     chal = requests.get(f"{BASE}/api/gate2/challenge", headers=HEADERS).json()
     leaks = [int(x) for x in chal["sequence"]]
     token = chal["sessionToken"]
+    hidden_bits = 18
     
     A = 6364136223846793005
     C = 1442695040888963407
     MOD = 18446744073709551616
     
     t0 = time.time()
-    solver = z3.Solver()
+    solver = z3.SolverFor("QF_BV")
     s0 = z3.BitVec("s0", 64)
     curr = s0
-    for i in range(len(leaks)):
-        solver.add(z3.Extract(63, 20, curr) == leaks[i])
+    for i in range(4):
+        solver.add(z3.Extract(63, hidden_bits, curr) == leaks[i])
         curr = (z3.BitVecVal(A, 64) * curr) + z3.BitVecVal(C, 64)
         
     if solver.check() != z3.sat:
-        print("  Failed to solve truncated LCG!")
+        print("  Failed to solve LCG!")
         return None
         
     s0_val = solver.model()[s0].as_long()
-    print(f"  Z3 recovered 64-bit state in {time.time() - t0:.3f}s: {s0_val}")
+    st = s0_val
+    for i in range(8):
+        assert (st >> hidden_bits) == leaks[i], f"Mismatch at leak {i}"
+        st = (A * st + C) % MOD
+        
+    pred_x9 = str(st >> hidden_bits)
+    print(f"  Z3 recovered 64-bit state in {time.time() - t0:.3f}s: X9 = {pred_x9}")
     
-    state = s0_val
-    for _ in range(len(leaks)):
-        state = (A * state + C) % MOD
-        
-    preds = []
-    for _ in range(3):
-        preds.append(str(state >> 20))
-        state = (A * state + C) % MOD
-        
-    sub = requests.post(f"{BASE}/api/gate2/submit", headers=HEADERS, json={"sessionToken": token, "predictions": preds}).json()
+    sub = requests.post(f"{BASE}/api/gate2/submit", headers=HEADERS, json={"sessionToken": token, "prediction": pred_x9}).json()
     print("  Gate 2 Status:", sub.get("success"), "Flag:", sub.get("flag"))
     return sub.get("flag")
 
 def solve_gate3():
-    print("\n[3/8] Attacking Gate 3: LOGIC MAZE (200-Var Critical 3-SAT)...")
+    print("\n[3/8] Attacking Gate 3: LOGIC MAZE (240-Var Critical 3-SAT, 1023 Clauses)...")
     chal = requests.get(f"{BASE}/api/gate3/challenge", headers=HEADERS).json()
     token = chal["sessionToken"]
     num_vars = chal["variablesCount"]
@@ -88,7 +100,7 @@ def solve_gate3():
         solver.add(z3.Or(conds))
         
     res = solver.check()
-    print(f"  Z3 solved 200-var 3-SAT in {time.time() - t0:.3f}s: {res}")
+    print(f"  Z3 solved 240-var 3-SAT in {time.time() - t0:.3f}s: {res}")
     if res == z3.sat:
         m = solver.model()
         assignment = [bool(m.eval(var_map[i], model_completion=True)) for i in range(1, num_vars + 1)]
@@ -98,101 +110,94 @@ def solve_gate3():
     return None
 
 def solve_gate4():
-    print("\n[4/8] Attacking Gate 4: BYTECODE VAULT (128-bit Key VM)...")
+    print("\n[4/8] Attacking Gate 4: BYTECODE VAULT (8 Registers 32-bit, 24 Rounds, 4 Checkpoints)...")
     chal = requests.get(f"{BASE}/api/gate4/challenge", headers=HEADERS).json()
     token = chal["sessionToken"]
-    bc = bytes.fromhex(chal["bytecodeHex"])
+    initial_regs = chal["initialRegisters"]
+    checkpoints = chal["checkpoints"]
+    instructions = chal["instructions"]
     
     t0 = time.time()
     solver = z3.Solver()
-    k_sym = [z3.BitVec(f"k_{i}", 8) for i in range(16)]
+    k_sym = [z3.BitVec(f"k_{i}", 32) for i in range(4)]
     
-    def rotl8(x, r): return ((x << r) | z3.LShR(x, 8 - r))
+    def rotl32_sym(x, r): return ((x << r) | z3.LShR(x, 32 - r))
     
-    stack = []
-    pc = 0
-    while pc < len(bc):
-        op = bc[pc]
-        if op == 0x01:
-            stack.append(k_sym[bc[pc+1]])
-            pc += 2
-        elif op == 0x02:
-            stack.append(z3.BitVecVal(bc[pc+1], 8))
-            pc += 2
-        elif op == 0x03:
-            b = stack.pop(); a = stack.pop()
-            stack.append(a ^ b)
-            pc += 1
-        elif op == 0x04:
-            b = stack.pop(); a = stack.pop()
-            stack.append(a + b)
-            pc += 1
-        elif op == 0x05:
-            b = stack.pop(); a = stack.pop()
-            stack.append(a - b)
-            pc += 1
-        elif op == 0x06:
-            r = bc[pc+1]; a = stack.pop()
-            stack.append(rotl8(a, r))
-            pc += 2
-        elif op == 0x07:
-            b = stack.pop(); a = stack.pop()
-            solver.add(a == b)
-            pc += 1
-        elif op == 0x08:
-            stack.append(stack[-1])
-            pc += 1
-        elif op == 0xff:
-            break
-        else:
-            raise ValueError(f"Unknown opcode {op}")
-            
+    R_sym = [z3.BitVecVal(v, 32) for v in initial_regs]
+    
+    for rnd, inst in enumerate(instructions):
+        r_dst = inst["r_dst"]
+        r_src = inst["r_src"]
+        k_idx = inst["k_idx"]
+        rot = inst["rot"]
+        c = inst["c"]
+        
+        R_sym[r_dst] = (R_sym[r_dst] + R_sym[r_src] + z3.BitVecVal(c, 32))
+        R_sym[r_dst] = rotl32_sym(R_sym[r_dst] ^ k_sym[k_idx], rot)
+        
+        rnd_key = str(rnd)
+        if rnd_key in checkpoints:
+            expected_regs = checkpoints[rnd_key]
+            for reg_i in range(8):
+                solver.add(R_sym[reg_i] == z3.BitVecVal(expected_regs[reg_i], 32))
+                
     if solver.check() != z3.sat:
-        print("  Failed to solve VM constraints!")
+        print("  Failed to solve VM symbolic constraints!")
         return None
         
     m = solver.model()
-    key_hex = bytes([m[k_sym[i]].as_long() for i in range(16)]).hex()
-    print(f"  Z3 recovered 16-byte key in {time.time() - t0:.3f}s: {key_hex}")
+    key_words = [m[k_sym[i]].as_long() for i in range(4)]
+    key_hex = "".join(f"{w:08x}" for w in key_words)
+    print(f"  Z3 recovered 128-bit key in {time.time() - t0:.3f}s: {key_hex}")
     
     sub = requests.post(f"{BASE}/api/gate4/submit", headers=HEADERS, json={"sessionToken": token, "keyHex": key_hex}).json()
     print("  Gate 4 Status:", sub.get("success"), "Flag:", sub.get("flag"))
     return sub.get("flag")
 
 def solve_gate5():
-    print("\n[5/8] Attacking Gate 5: LATTICE CITADEL (36-Weight Knapsack)...")
+    print("\n[5/8] Attacking Gate 5: LATTICE CITADEL (42-Weight Knapsack, 2^21 MitM per side)...")
     chal = requests.get(f"{BASE}/api/gate5/challenge", headers=HEADERS).json()
     token = chal["sessionToken"]
     weights = [int(w) for w in chal["weights"]]
     target = int(chal["targetSum"])
     n = len(weights)
-    
-    t0 = time.time()
     n1 = n // 2
     n2 = n - n1
-    left_map = {}
-    for mask in range(1 << n1):
-        s = sum(weights[i] for i in range(n1) if (mask >> i) & 1)
-        left_map[s] = mask
-        
-    sol = None
-    for mask in range(1 << n2):
-        s = sum(weights[n1 + i] for i in range(n2) if (mask >> i) & 1)
-        rem = target - s
-        if rem in left_map:
-            m1 = left_map[rem]
-            m2 = mask
-            bits = [(m1 >> i) & 1 for i in range(n1)] + [(m2 >> i) & 1 for i in range(n2)]
-            sol = "".join(str(b) for b in bits)
-            break
+    
+    t0 = time.time()
+    left_sums = [0] * (1 << n1)
+    for i in range(n1):
+        w = weights[i]
+        bit = 1 << i
+        for mask in range(bit):
+            left_sums[mask + bit] = left_sums[mask] + w
             
-    print(f"  Meet-in-the-Middle solved 36-weight subset sum in {time.time() - t0:.3f}s: {sol}")
-    sub = requests.post(f"{BASE}/api/gate5/submit", headers=HEADERS, json={"sessionToken": token, "solution": sol}).json()
+    left_map = {left_sums[mask]: mask for mask in range(1 << n1)}
+    
+    found = None
+    right_sums = [0] * (1 << n2)
+    for i in range(n2):
+        w = weights[n1 + i]
+        bit = 1 << i
+        for mask in range(bit):
+            s = right_sums[mask] + w
+            right_sums[mask + bit] = s
+            rem = target - s
+            if rem in left_map:
+                m1 = left_map[rem]
+                m2 = mask + bit
+                bits = [(m1 >> j) & 1 for j in range(n1)] + [(m2 >> j) & 1 for j in range(n2)]
+                found = "".join(str(b) for b in bits)
+                break
+        if found: break
+        
+    print(f"  Meet-in-the-Middle solved 42-weight knapsack in {time.time() - t0:.3f}s: {found[:16]}...")
+    sub = requests.post(f"{BASE}/api/gate5/submit", headers=HEADERS, json={"sessionToken": token, "solution": found}).json()
     print("  Gate 5 Status:", sub.get("success"), "Flag:", sub.get("flag"))
     return sub.get("flag")
 
 def solve_gate6():
-    print("\n[6/8] Attacking Gate 6: WIENER'S ABYSS (1024-bit RSA Wiener Attack)...")
+    print("\n[6/8] Attacking Gate 6: WIENER'S ABYSS (1024-bit RSA Small-d)...")
     chal = requests.get(f"{BASE}/api/gate6/challenge", headers=HEADERS).json()
     token = chal["sessionToken"]
     e = int(chal["publicExponent"])
@@ -203,21 +208,13 @@ def solve_gate6():
     def rational_to_contfrac(x, y):
         pq = []
         while y != 0:
-            a = x // y
-            pq.append(a)
-            x, y = y, x - a * y
+            a = x // y; pq.append(a); x, y = y, x - a * y
         return pq
 
     def convs(frac):
-        c = []
-        p0, p1 = 0, 1
-        q0, q1 = 1, 0
+        c = []; p0, p1 = 0, 1; q0, q1 = 1, 0
         for a in frac:
-            p = a * p1 + p0
-            q = a * q1 + q0
-            c.append((p, q))
-            p0, p1 = p1, p
-            q0, q1 = q1, q
+            p = a * p1 + p0; q = a * q1 + q0; c.append((p, q)); p0, p1 = p1, p; q0, q1 = q1, q
         return c
 
     rec_d = None
@@ -242,7 +239,7 @@ def solve_gate6():
     return sub.get("flag")
 
 def solve_gate7():
-    print("\n[7/8] Attacking Gate 7: ANF MATRIX (20-Var MQ GF(2))...")
+    print("\n[7/8] Attacking Gate 7: ANF MATRIX (22-Var, 30-Eq MQ over GF(2))...")
     chal = requests.get(f"{BASE}/api/gate7/challenge", headers=HEADERS).json()
     token = chal["sessionToken"]
     num_vars = chal["numVariables"]
@@ -275,45 +272,60 @@ def solve_gate7():
     return sub.get("flag")
 
 def solve_gate8():
-    print("\n[8/8] Attacking Gate 8: CHRONO APEX (64-bit Berlekamp-Massey LFSR)...")
+    print("\n[8/8] Attacking Gate 8: CHRONO APEX (Non-Linear Filter Generator LFSR-32)...")
     chal = requests.get(f"{BASE}/api/gate8/challenge", headers=HEADERS).json()
     token = chal["sessionToken"]
+    degree = chal["degree"]
+    taps = chal["feedbackTaps"]
+    feedback = [0] * (degree + 1)
+    for t in taps: feedback[t] = 1
+    
     observed = [int(c) for c in chal["observedBits"]]
     
     t0 = time.time()
-    def berlekamp_massey(s):
-        n = len(s)
-        c = [0] * n; b = [0] * n
-        c[0] = 1; b[0] = 1
-        l = 0; m = 1
-        for i in range(n):
-            d = s[i]
-            for j in range(1, l + 1): d ^= c[j] & s[i - j]
-            if d == 1:
-                t = list(c)
-                for j in range(n - i + m - 1):
-                    if j + i - m < n: c[j + i - m] ^= b[j]
-                if 2 * l <= i:
-                    l = i + 1 - l; b = t; m = i
-        return c[:l + 1]
-
-    poly = berlekamp_massey(observed)
-    stream = list(observed)
-    for i in range(len(observed), len(observed) + 64):
-        b = 0
-        for j in range(1, len(poly)):
-            b ^= poly[j] & stream[i - j]
-        stream.append(b)
-        
-    predicted_bits = "".join(str(b) for b in stream[128:192])
-    print(f"  Berlekamp-Massey synthesized 64-bit poly in {time.time() - t0:.3f}s: {predicted_bits[:16]}...")
+    solver = z3.Solver()
+    init_sym = [z3.Bool(f"s_{i}") for i in range(degree)]
+    sym_state = list(init_sym)
     
+    for step in range(len(observed)):
+        s_t = sym_state[degree - 1]
+        z_sym = z3.Xor(s_t, z3.Xor(
+            z3.And(sym_state[degree - 4], sym_state[degree - 8]),
+            z3.And(sym_state[degree - 13], sym_state[degree - 21])
+        ))
+        solver.add(z_sym == bool(observed[step]))
+        
+        new_sym_bit = z3.BoolVal(False)
+        for j in range(1, degree + 1):
+            if feedback[j]:
+                new_sym_bit = z3.Xor(new_sym_bit, sym_state[degree - j])
+        sym_state = [new_sym_bit] + sym_state[:degree - 1]
+        
+    assert solver.check() == z3.sat
+    m = solver.model()
+    rec_init = [1 if z3.is_true(m.eval(init_sym[i])) else 0 for i in range(degree)]
+    print(f"  Algebraic SMT solved initial state in {time.time() - t0:.3f}s")
+    
+    # Clock forward to generate 32 bits from step 64 to 95
+    state = list(rec_init)
+    extrapolated = []
+    for step in range(96):
+        s_t = state[degree - 1]
+        z_t = s_t ^ (state[degree - 4] & state[degree - 8]) ^ (state[degree - 13] & state[degree - 21])
+        if step >= 64:
+            extrapolated.append(z_t)
+        new_bit = 0
+        for j in range(1, degree + 1):
+            if feedback[j]: new_bit ^= state[degree - j]
+        state = [new_bit] + state[:degree - 1]
+        
+    predicted_bits = "".join(str(b) for b in extrapolated)
     sub = requests.post(f"{BASE}/api/gate8/submit", headers=HEADERS, json={"sessionToken": token, "predictedBits": predicted_bits}).json()
     print("  Gate 8 Status:", sub.get("success"), "Flag:", sub.get("flag"))
     return sub.get("flag")
 
 def main():
-    print("=== STARTING AGENTGATE NIGHTMARE HELL SOLVER (8 GATES) ===")
+    print("=== STARTING CALIBRATED NIGHTMARE HELL SOLVER (8 GATES) ===")
     t_start = time.time()
     flags = [
         solve_gate1(),

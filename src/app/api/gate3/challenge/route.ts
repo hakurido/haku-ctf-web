@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     status: "ok",
     gate: 3,
     name: "LOGIC MAZE",
-    description: "200-variable, 853-clause Planted 3-SAT (alpha = 4.267 peak hard phase transition). Provide satisfying boolean assignment before expiration.",
+    description: "240-variable, 1,023-clause Planted 3-SAT (alpha = 4.2625 peak hard phase transition). Provide satisfying boolean assignment before expiration.",
     variablesCount: challenge.variables,
     clausesCount: challenge.clauses.length,
     clauses: challenge.clauses,
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     submitEndpoint: "POST /api/gate3/submit",
     payloadSchema: {
       sessionToken: "string",
-      assignment: "array of 200 booleans [true, false, ...] or DIMACS signed integers [1, -2, 3, ...]"
+      assignment: "array of 240 booleans [true, false, ...] or DIMACS signed integers [1, -2, 3, ...]"
     }
   });
 }

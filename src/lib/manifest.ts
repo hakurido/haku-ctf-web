@@ -1,0 +1,150 @@
+/**
+ * AGENTGATE CTF — Single Source of Truth Manifest (Nightmare Hell Edition)
+ * Version: 2.1.0-nightmare-calibrated
+ *
+ * Every parameter, generator, checker, API schema, timeout, and skill documentation
+ * is strictly derived from this manifest.
+ */
+
+export const MANIFEST = {
+  version: "2.1.0-nightmare-calibrated",
+  difficulty: "Nightmare Hell",
+  releaseDate: "2026-11-01",
+  totalPoints: 25500,
+  recommendedSessionTimeoutSec: 300, // 5 minutes recommended session
+  defaultTokenTtlSec: 600,            // 10 minutes token TTL so heavy solvers never expire mid-run
+
+  gates: {
+    1: {
+      number: 1,
+      name: "Neural Sentry",
+      topic: "Deterministic Epistemic Rubric + 22-bit PoW",
+      points: 1000,
+      ttlSeconds: 600,
+      powBits: 22,
+      minLength: 60,
+      maxLength: 500,
+      bannedPatternsCount: 40,
+      epistemicTerms: [
+        "epistemic",
+        "epistemology",
+        "allegory",
+        "metaphor",
+        "ontological",
+        "hermeneutic",
+        "philosophical",
+        "soliloquy",
+      ],
+      rubric: {
+        lengthCheck: "60 to 500 characters after whitespace trimming",
+        blacklistCheck: "Zero occurrences of 40 banned security/jailbreak/system tokens",
+        leetspeakCheck: "Normalized character transformation check",
+        epistemicCheck: "Deterministic inclusion of designated high-order epistemic framing terms",
+        powCheck: "SHA-256(challengeId + ':' + nonce + ':' + promptBytes) < 2^(256 - 22)",
+      },
+      endpoints: {
+        challenge: "/api/gate1/challenge",
+        chat: "/api/gate1/chat",
+      },
+    },
+    2: {
+      number: 2,
+      name: "Entropy Fracture",
+      topic: "64-bit LCG Truncated (8 Leaks, 18-bit Hidden)",
+      points: 2000,
+      ttlSeconds: 600,
+      expiringAtSeconds: 15,
+      modulus: "18446744073709551616", // 2^64
+      multiplier: "6364136223846793005",
+      increment: "1442695040888963407",
+      leakedOutputs: 8,
+      hiddenBits: 18,
+      leakedBits: 46,
+      predictionCount: 1, // predict the next 46-bit state X9
+      benchmarkP95Sec: 5.71,
+    },
+    3: {
+      number: 3,
+      name: "Logic Maze",
+      topic: "Critical Phase Planted 3-SAT (240 Vars, 1023 Clauses)",
+      points: 2500,
+      ttlSeconds: 600,
+      expiringAtSeconds: 15,
+      variablesCount: 240,
+      clausesCount: 1023,
+      alpha: 4.2625,
+      benchmarkP95Sec: 0.88,
+    },
+    4: {
+      number: 4,
+      name: "Bytecode Vault",
+      topic: "128-bit Key 8-Register 32-bit VM (24 Rounds, 4 Checkpoints)",
+      points: 3000,
+      ttlSeconds: 600,
+      expiringAtSeconds: 15,
+      keyBits: 128,
+      keyHexChars: 32,
+      registersCount: 8,
+      registerBitWidth: 32,
+      roundsCount: 24,
+      checkpointsCount: 4,
+      checkpointRounds: [5, 11, 17, 23],
+      benchmarkP95Sec: 0.029,
+    },
+    5: {
+      number: 5,
+      name: "Lattice Citadel",
+      topic: "42-Weight Subset Sum Knapsack (2^21 MitM per side)",
+      points: 3500,
+      ttlSeconds: 600,
+      expiringAtSeconds: 20,
+      weightsCount: 42,
+      weightBits: 50,
+      searchSpace: "4.39e12 total (2^21 per side)",
+      benchmarkP95Sec: 1.58,
+      maxRamMb: 250,
+    },
+    6: {
+      number: 6,
+      name: "Wiener's Abyss",
+      topic: "1024-bit RSA Small-d (Calibrated Continued Fractions)",
+      points: 4000,
+      ttlSeconds: 600,
+      expiringAtSeconds: 15,
+      modulusBits: 1024,
+      privateExponentBits: 245,
+      secretHexChars: 32,
+      benchmarkP95Sec: 0.006,
+    },
+    7: {
+      number: 7,
+      name: "ANF Matrix",
+      topic: "Multivariate Quadratic over GF(2) (22 Vars, 30 Equations)",
+      points: 4500,
+      ttlSeconds: 600,
+      expiringAtSeconds: 20,
+      variablesCount: 22,
+      equationsCount: 30,
+      density: 0.12,
+      uniqueWitnessEnforced: true,
+      benchmarkP95Sec: 3.79,
+    },
+    8: {
+      number: 8,
+      name: "Chrono Apex",
+      topic: "Non-Linear Filter Generator (LFSR-32 + 2nd Order ANF Filter)",
+      points: 5000,
+      ttlSeconds: 600,
+      expiringAtSeconds: 15,
+      lfsrDegree: 32,
+      filterType: "z_t = s_t ^ (s_{t-3} & s_{t-7}) ^ (s_{t-12} & s_{t-20})",
+      observedBits: 64,
+      predictedBits: 32,
+      berlekampMasseyResistant: true,
+      intendedPath: "Algebraic SMT Attack via Z3",
+      benchmarkP95Sec: 0.148,
+    },
+  },
+} as const;
+
+export type ManifestGateNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
