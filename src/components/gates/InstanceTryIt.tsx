@@ -202,8 +202,26 @@ export function InstanceTryIt({ gate }: { gate: InstanceGate }) {
           <p className="text-fg">{slot.result.message}</p>
           <p className="text-fg-secondary mt-2">
             {instance && !instance.expired
-              ? "Change your answer and submit again before the instance expires."
-              : "Request a new instance to try again."}
+              ? "State re-randomized on server. Change your answer and submit again before the instance expires."
+              : "Challenge state re-randomized. Request a new instance to try again."}
+          </p>
+        </StatusMessage>
+      )}
+
+      {slot.status === "expired" && (
+        <StatusMessage
+          tone="warning"
+          badgeLabel="Token Expired"
+          badgeIcon="expired"
+          action={
+            <Button variant="primary" size="sm" onClick={request}>
+              Request new instance
+            </Button>
+          }
+        >
+          <p className="font-semibold text-fg mb-1">Challenge Session Token Expired</p>
+          <p className="text-fg-secondary">
+            The cryptographic session token for this challenge instance has reached its expiration. Previous outputs are invalidated. Request a fresh instance to restart the challenge.
           </p>
         </StatusMessage>
       )}

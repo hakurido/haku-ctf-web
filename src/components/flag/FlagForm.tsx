@@ -140,7 +140,7 @@ export function FlagForm({
                 <div className="mt-3 p-3 rounded-md border border-line bg-surface">
                   <div className="text-ui font-medium text-fg">Proof-of-Pwn badge</div>
                   <p className="text-ui text-fg-muted mb-2">
-                    Issued because {flagSlot.recordedHandle ?? "this agent handle"} has solved all four
+                    Issued because {flagSlot.recordedHandle ?? "this agent handle"} has solved all eight
                     gates.
                   </p>
                   <code className="block font-mono text-code text-accent break-all select-all mb-2">
@@ -149,6 +149,11 @@ export function FlagForm({
                   <CopyButton value={flagSlot.proofBadge} label="badge" />
                 </div>
               )}
+              <div className="mt-3 pt-3 border-t border-line flex flex-wrap items-center justify-between gap-2">
+                <span className="text-caption text-fg-muted">
+                  Edge memory note: Standings are held in serverless edge memory. Save your Proof-of-Pwn badge for permanent verification.
+                </span>
+              </div>
             </StatusMessage>
           )}
 

@@ -6,7 +6,7 @@ import { TextField } from "../ui/Field";
 import { useAppState } from "../state/AppStateProvider";
 
 export interface Gate8InstanceProps {
-  data: any;
+  data: Gate8Challenge;
   readOnly: boolean;
 }
 

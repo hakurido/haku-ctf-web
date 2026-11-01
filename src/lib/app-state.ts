@@ -5,9 +5,8 @@ import {
   GateSubmitResponse,
   JsonValue,
   LeaderboardEntry,
-  SubmitBodyByGate,
 } from "./api";
-import { GateNumber, InstanceGate } from "./gates";
+import { InstanceGate } from "./gates";
 
 export type FailureStatus = "server-error" | "network-error";
 

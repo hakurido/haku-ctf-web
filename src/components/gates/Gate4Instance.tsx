@@ -14,7 +14,6 @@ export function Gate4Instance({ data, readOnly }: Gate4InstanceProps) {
   const { state, setField } = useAppState();
   const initRegs = data.initialRegisters || [];
   const checkpoints = data.checkpoints || {};
-  const instructions = data.instructions || [];
 
   return (
     <div className="space-y-5">

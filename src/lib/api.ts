@@ -88,7 +88,7 @@ export interface Gate4Challenge extends ChallengeBase<4> {
   };
   initialRegisters: number[];
   checkpoints: Record<number, number[]>;
-  instructions: any[];
+  instructions: unknown[];
   payloadSchema: { sessionToken: string; keyHex: string };
 }
 
@@ -108,11 +108,13 @@ export interface Gate6Challenge extends ChallengeBase<6> {
 export interface Gate7Challenge extends ChallengeBase<7> {
   numVariables: number;
   numEquations: number;
-  equations: any[];
+  equations: { quad?: [number, number][]; lin?: number[]; c?: number }[];
 }
 
 export interface Gate8Challenge extends ChallengeBase<8> {
   degree: number;
+  filterFormula?: string;
+  feedbackTaps?: number[];
   observedBits: string;
 }
 

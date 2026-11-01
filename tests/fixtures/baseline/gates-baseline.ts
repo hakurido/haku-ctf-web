@@ -128,6 +128,8 @@ export const INSTANCE_BASELINE = Object.freeze({
 
 export const GATE2_INCREMENT_BASELINE = "1442695040888963407";
 
+export const GATES_BASELINE_TIES = Object.freeze([]);
+
 export const URLS_BASELINE = Object.freeze({
   base: "https://ctf.hakudigital.tech",
   skill: "https://ctf.hakudigital.tech/skill.md",
