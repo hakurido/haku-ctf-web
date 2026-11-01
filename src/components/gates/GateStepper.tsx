@@ -1,10 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { GateNumber, GATES } from "@/lib/gates";
+import { type GateNumber, GATES } from "@/lib/gates";
 
 export function GateStepper({ current }: { current: GateNumber }) {
   return (
-    <nav aria-label="Gate pages" className="w-full mb-6">
+    <nav aria-label="Gates" className="w-full mb-6">
       <ol className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {GATES.map((gate) => {
           const isCurrent = gate.number === current;
@@ -13,18 +13,15 @@ export function GateStepper({ current }: { current: GateNumber }) {
               <Link
                 href={`/gates/${gate.number}`}
                 aria-current={isCurrent ? "page" : undefined}
-                className={`flex flex-col p-3 rounded-md border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`flex h-full flex-col p-3 rounded-md border text-left transition-colors ${
                   isCurrent
-                    ? "border-accent bg-surface-hover text-fg"
+                    ? "border-accent border-l-4 bg-surface-hover text-fg"
                     : "border-line bg-surface text-fg-secondary hover:border-line-control hover:text-fg"
                 }`}
               >
-                <span className="font-mono text-caption text-fg-muted">
-                  Gate {gate.number}
-                </span>
-                <span className="text-ui font-medium truncate">
-                  {gate.name}
-                </span>
+                <span className="text-ui text-fg-muted">Gate {gate.number}</span>
+                {/* Labels wrap instead of truncating (R-33). */}
+                <span className="text-ui font-medium break-words">{gate.name}</span>
               </Link>
             </li>
           );

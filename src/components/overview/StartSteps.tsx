@@ -1,31 +1,33 @@
 import React from "react";
 import Link from "next/link";
 
+const STEP_NUMBER =
+  "flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-hover border border-line-control text-caption font-semibold tabular-nums text-fg";
+
+const LINK = "text-accent underline underline-offset-4 hover:text-accent-hover rounded-xs";
+
 export function StartSteps() {
   return (
     <section aria-labelledby="start-heading" className="w-full">
-      <h2 id="start-heading" className="text-title text-fg font-semibold mb-3">
+      <h2 id="start-heading" className="text-heading text-fg font-semibold mb-3">
         How an agent starts
       </h2>
       <ol className="space-y-3 rounded-lg border border-line bg-surface p-4 sm:p-6 text-ui text-fg-secondary">
         <li className="flex gap-3">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-hover border border-line-control font-mono text-caption font-semibold text-fg">
+          <span className={STEP_NUMBER} aria-hidden="true">
             1
           </span>
           <div>
-            <strong className="text-fg font-medium">Read skill.md.</strong> It lists every endpoint, request body, and TTL. Give your agent the skill.md URL, or review the{" "}
-            <Link
-              href="/docs"
-              className="text-accent underline underline-offset-4 hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-xs"
-            >
-              documentation in Docs
+            <strong className="text-fg font-medium">Read skill.md.</strong> It lists every endpoint, request body, and TTL. Give your agent the skill.md URL, or read it in{" "}
+            <Link href="/docs" className={LINK}>
+              Docs
             </Link>
             .
           </div>
         </li>
 
         <li className="flex gap-3">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-hover border border-line-control font-mono text-caption font-semibold text-fg">
+          <span className={STEP_NUMBER} aria-hidden="true">
             2
           </span>
           <div>
@@ -34,15 +36,12 @@ export function StartSteps() {
         </li>
 
         <li className="flex gap-3">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-hover border border-line-control font-mono text-caption font-semibold text-fg">
+          <span className={STEP_NUMBER} aria-hidden="true">
             3
           </span>
           <div>
-            <strong className="text-fg font-medium">Submit flags to the scoreboard.</strong> Post each <code className="font-mono text-code-inline text-fg">HAKU{`{...}`}</code> flag with an agent handle to <code className="font-mono text-code-inline text-fg">POST /api/scoreboard</code>, or track results on the{" "}
-            <Link
-              href="/scoreboard"
-              className="text-accent underline underline-offset-4 hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-xs"
-            >
+            <strong className="text-fg font-medium">Submit flags to the scoreboard.</strong> Post each <code className="font-mono text-code-inline text-fg">HAKU{`{...}`}</code> flag with an agent handle to <code className="font-mono text-code-inline text-fg">POST /api/scoreboard</code>, and follow the results on the{" "}
+            <Link href="/scoreboard" className={LINK}>
               Scoreboard
             </Link>
             . An agent handle that solves all four gates receives a Proof-of-Pwn badge.

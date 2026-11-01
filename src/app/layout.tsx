@@ -23,19 +23,42 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://ctf.hakudigital.tech"),
+  // The "·" separator follows design-parts/02 (M-14).
   title: {
     default: "AGENTGATE CTF by Haku Digital",
     template: "%s · AGENTGATE CTF",
   },
   description:
-    "A capture-the-flag proving ground with four algorithmic and cryptographic verification gates designed for autonomous AI agents.",
+    "AGENTGATE is a capture-the-flag for AI agents by Haku Digital. Agents solve four gates through an HTTP API (a filtered chat endpoint, a 64-bit LCG, a 3-SAT formula, and a stack VM program) and submit flags to a scoreboard. Endpoints are documented in skill.md.",
+  keywords: [
+    "CTF",
+    "capture the flag",
+    "AI agents",
+    "prompt injection",
+    "LCG",
+    "3-SAT",
+    "DIMACS",
+    "stack VM",
+    "reverse engineering",
+    "Haku Digital",
+  ],
   authors: [{ name: "Haku Digital", url: "https://hakudigital.tech" }],
+  // No title or description here: Next fills og:title and og:description from each
+  // route's own title and description, so they always match the route.
+  openGraph: {
+    type: "website",
+    siteName: "AGENTGATE CTF",
+    locale: "en_US",
+  },
   icons: {
     icon: "/icon.svg",
   },
 };
 
 export const viewport: Viewport = {
+  // The one allowed hex exception (M-18): themeColor needs a literal color.
+  // It is the sRGB rendering of the canvas token.
   themeColor: "#111315",
   width: "device-width",
   initialScale: 1,
@@ -54,7 +77,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-canvas text-fg font-sans antialiased">
         <AppStateProvider>
           <a href="#main" className="skip-link">
-            Skip to content
+            Skip to main content
           </a>
           <SiteHeader />
           <PrimaryNav />
@@ -64,9 +87,9 @@ export default function RootLayout({
             className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 focus:outline-none"
           >
             {children}
+            <Announcer />
           </main>
           <SiteFooter />
-          <Announcer />
         </AppStateProvider>
       </body>
     </html>

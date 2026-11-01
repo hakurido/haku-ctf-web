@@ -7,15 +7,17 @@ import { useNow } from "../state/AppStateProvider";
 export interface CountdownProps {
   expiresAt: number;
   expired: boolean;
+  /** Seconds left at which the countdown turns to "Expiring" (per gate, R1). */
+  expiringAt: number;
   className?: string;
 }
 
-export function Countdown({ expiresAt, expired, className = "" }: CountdownProps) {
+export function Countdown({ expiresAt, expired, expiringAt, className = "" }: CountdownProps) {
   const now = useNow();
 
   if (expired || now >= expiresAt) {
     return (
-      <div className={`inline-flex items-center gap-1.5 font-mono text-code text-warning font-medium ${className}`}>
+      <div className={`inline-flex items-center gap-1.5 text-ui text-warning font-medium ${className}`}>
         <TimerOff className="size-4 shrink-0" aria-hidden="true" />
         <span>Expired</span>
       </div>
@@ -23,11 +25,11 @@ export function Countdown({ expiresAt, expired, className = "" }: CountdownProps
   }
 
   const secondsLeft = Math.max(0, Math.ceil((expiresAt - now) / 1000));
-  const isExpiring = secondsLeft <= 5;
+  const isExpiring = secondsLeft <= expiringAt;
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 font-mono text-code tabular-nums font-medium ${
+      className={`inline-flex items-center gap-1.5 text-ui tabular-nums font-medium ${
         isExpiring ? "text-warning" : "text-fg"
       } ${className}`}
     >

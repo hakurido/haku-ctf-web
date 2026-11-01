@@ -1,8 +1,11 @@
+import type { JsonValue } from "./api.ts";
+
+/** The longest agent handle the scoreboard records. */
 export const HANDLE_MAX_LENGTH = 24;
 
-/** Mirrors src/app/api/scoreboard/route.ts exactly. */
+/** Mirrors the agentKey cleanup in src/app/api/scoreboard/route.ts exactly. */
 export function cleanHandle(raw: string): string {
-  return String(raw).trim().replace(/[^a-zA-Z0-9_\-\.]/g, "").slice(0, 24);
+  return String(raw).trim().replace(/[^a-zA-Z0-9_\-\.]/g, "").slice(0, HANDLE_MAX_LENGTH);
 }
 
 export type HandleCheck =
@@ -25,7 +28,7 @@ export function checkHandle(raw: string): HandleCheck {
 export const GATE3_MALFORMED_MESSAGE = "Malformed assignment array. Expected valid JSON format.";
 
 export type AssignmentParse =
-  | { ok: true; value: any }
+  | { ok: true; value: JsonValue }
   | { ok: false; message: typeof GATE3_MALFORMED_MESSAGE };
 
 export function parseGate3Assignment(text: string): AssignmentParse {
@@ -34,7 +37,8 @@ export function parseGate3Assignment(text: string): AssignmentParse {
     return { ok: false, message: GATE3_MALFORMED_MESSAGE };
   }
   try {
-    const parsed = JSON.parse(trimmed);
+    // Anything JSON.parse returns is a JsonValue.
+    const parsed = JSON.parse(trimmed) as JsonValue;
     return { ok: true, value: parsed };
   } catch {
     return { ok: false, message: GATE3_MALFORMED_MESSAGE };

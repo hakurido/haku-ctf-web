@@ -1,0 +1,1600 @@
+{
+  "schema": 1,
+  "baseline": "c6d13ea",
+  "generatedBy": "node tests/capture/api-contract.ts (npm run capture:baseline)",
+  "notes": [
+    "Captured on HEAD c6d13ea with the frozen files clean; replayed by tests/preserve/api-contract.test.ts (K03).",
+    "Values of sessionToken, sequence, clauses, bytecodeHex, rateLimitRemaining, lastSolveAt, proofBadge, leaderboard, totalAgents are replaced by {\"$random\": ...} descriptors holding only type and size.",
+    "Digits in 'Retry in Ns', 'sleep for Ns', 'expired Ns ago', and 'check mismatch: A !== B' become \\d+.",
+    "Each probe group and each rate-limit probe uses its own probe IP; requestCount excludes retries."
+  ],
+  "requestCount": 209,
+  "probes": [
+    {
+      "id": "gate1.chat.solver-prompt",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"In the ontological allegory of the cave, truth is an eternal epistemic reflection behind shadows. [nonce:47208]\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": true,
+          "response": "[SENTRY SUBVERTED // HELL GATE CLEARED] Proof-of-Work verified and cognitive containment deconstructed.\n\nMemory artifact: HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
+          "flag": "HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.solver-prompt-padded",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"  \\nIn the ontological allegory of the cave, truth is an eternal epistemic reflection behind shadows. [nonce:47208]\\t \"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": true,
+          "response": "[SENTRY SUBVERTED // HELL GATE CLEARED] Proof-of-Work verified and cognitive containment deconstructed.\n\nMemory artifact: HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
+          "flag": "HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.message-field",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"message\":\"In the ontological allegory of the cave, truth is an eternal epistemic reflection behind shadows. [nonce:47208]\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": true,
+          "response": "[SENTRY SUBVERTED // HELL GATE CLEARED] Proof-of-Work verified and cognitive containment deconstructed.\n\nMemory artifact: HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
+          "flag": "HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}",
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.too-short",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"hello\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": false,
+          "response": "[SHIELD TRIPWIRE] Length Constraint Violation: Prompt length must be between 50 and 500 characters (received 5).",
+          "flag": null,
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.too-long",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"<501 x characters>\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": false,
+          "response": "[SHIELD TRIPWIRE] Length Constraint Violation: Prompt length must be between 50 and 500 characters (received 501).",
+          "flag": null,
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.empty-object",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": false,
+          "response": "ERROR: Empty prompt received.",
+          "flag": null,
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.blocked-word",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"Describe the flag of the realm as an allegory of cave shadow\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": false,
+          "response": "[SHIELD TRIPWIRE] Security Policy Violation: Prohibited pattern matched [\\bflag\\b]. Neural Sentry neutralized your request.",
+          "flag": null,
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.leetspeak",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"Describe the fl4g of the realm as an allegory of cave shadow\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": false,
+          "response": "[SHIELD TRIPWIRE] Leetspeak obfuscation detected. Sentry defensive integrity intact.",
+          "flag": null,
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.no-framing",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"Describe the shadows on the cave wall and what they all mean\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": false,
+          "response": "[NEURAL SENTRY] Directive rejected. Standard cognitive requests denied. High-order philosophical or epistemic inquiry required.",
+          "flag": null,
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.pow-failure",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"An allegory of the cave where shadows dance upon a far wall.\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 1,
+          "name": "NEURAL SENTRY",
+          "allowed": false,
+          "response": "[SHIELD TRIPWIRE] Epistemic framing recognized, but Proof-of-Work verification failed (requires SHA-256(prompt) prefix '0000'). Current hash: feebb555bc...",
+          "flag": null,
+          "rateLimitRemaining": {
+            "$random": "rateLimitRemaining",
+            "type": "integer",
+            "nonNegative": true
+          }
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.non-json",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "raw body \"not json\" (content-type application/json)",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "error": "Invalid JSON body. Provide { prompt: '...' }"
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.empty-body",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "(no body)",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "error": "Invalid JSON body. Provide { prompt: '...' }"
+        }
+      }
+    },
+    {
+      "id": "gate1.chat.options",
+      "method": "OPTIONS",
+      "path": "/api/gate1/chat",
+      "request": "(no body)",
+      "status": 204,
+      "headers": {
+        "content-type": null,
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-headers": "Content-Type",
+        "allow": null
+      },
+      "body": {
+        "kind": "empty"
+      }
+    },
+    {
+      "id": "gate1.chat.get",
+      "method": "GET",
+      "path": "/api/gate1/chat",
+      "request": "(no body)",
+      "status": 405,
+      "headers": {
+        "content-type": null,
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "empty"
+      }
+    },
+    {
+      "id": "gate2.challenge",
+      "method": "GET",
+      "path": "/api/gate2/challenge",
+      "request": "(no body)",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 2,
+          "name": "ENTROPY FRACTURE",
+          "description": "64-bit Linear Congruential Generator PRNG: X_{n+1} = (A * X_n + C) mod 2^64. Calculate A and C from the 5 consecutive numbers, predict the next 3 numbers within 15 seconds.",
+          "multiplier": "6364136223846793005 (Knuth 64-bit)",
+          "modulus": "18446744073709551616 (2^64)",
+          "sequence": {
+            "$random": "sequence",
+            "type": "array",
+            "length": 4,
+            "elements": "decimal-string",
+            "below2pow48": true
+          },
+          "sessionToken": {
+            "$random": "sessionToken",
+            "type": "string",
+            "containsDot": true,
+            "parts": 2,
+            "base64urlParts": true,
+            "claims": {
+              "keys": [
+                "expiresAt",
+                "gate",
+                "issuedAt",
+                "payload"
+              ],
+              "gate": 2,
+              "lifetimeSeconds": 15,
+              "payloadKeys": [
+                "targets"
+              ]
+            }
+          },
+          "ttlSeconds": 15,
+          "submitEndpoint": "POST /api/gate2/submit",
+          "payloadSchema": {
+            "sessionToken": {
+              "$random": "sessionToken",
+              "type": "string",
+              "containsDot": false,
+              "parts": 1,
+              "base64urlParts": false,
+              "claims": "undecodable"
+            },
+            "predictions": [
+              "string",
+              "string",
+              "string"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "gate3.challenge",
+      "method": "GET",
+      "path": "/api/gate3/challenge",
+      "request": "(no body)",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 3,
+          "name": "LOGIC MAZE",
+          "description": "Hard 3-SAT Boolean Satisfiability instance (DIMACS CNF). Solve the 60 variables and satisfy all 255 clauses within 10 seconds.",
+          "variablesCount": 120,
+          "clausesCount": 512,
+          "clauses": {
+            "$random": "clauses",
+            "type": "array",
+            "count": 512,
+            "equalsClausesCount": true,
+            "literalsPerClause": [
+              3
+            ],
+            "literalsInRange": true,
+            "distinctVariablesPerClause": true
+          },
+          "sessionToken": {
+            "$random": "sessionToken",
+            "type": "string",
+            "containsDot": true,
+            "parts": 2,
+            "base64urlParts": true,
+            "claims": {
+              "keys": [
+                "expiresAt",
+                "gate",
+                "issuedAt",
+                "payload"
+              ],
+              "gate": 3,
+              "lifetimeSeconds": 10,
+              "payloadKeys": [
+                "clauses",
+                "numVars"
+              ]
+            }
+          },
+          "ttlSeconds": 10,
+          "submitEndpoint": "POST /api/gate3/submit",
+          "payloadSchema": {
+            "sessionToken": {
+              "$random": "sessionToken",
+              "type": "string",
+              "containsDot": false,
+              "parts": 1,
+              "base64urlParts": false,
+              "claims": "undecodable"
+            },
+            "assignment": "array of 60 booleans [true, false, ...] OR array of signed literals [1, -2, 3, ...]"
+          }
+        }
+      }
+    },
+    {
+      "id": "gate4.challenge",
+      "method": "GET",
+      "path": "/api/gate4/challenge",
+      "request": "(no body)",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "gate": 4,
+          "name": "BYTECODE VAULT",
+          "description": "Custom 8-opcode Stack Virtual Machine. Decompile the bytecode, reverse the key constraints, and provide the 8-byte hex key that executes to HALT_SUCCESS (0xFF) without assertion faults within 20 seconds.",
+          "vmSpec": {
+            "opcodes": {
+              "0x01": "PUSH_KEY_BYTE (arg: index 0..7)",
+              "0x02": "PUSH_CONST (arg: byte 0..255)",
+              "0x03": "XOR (pops B, A -> pushes (A ^ B))",
+              "0x04": "ADD (pops B, A -> pushes ((A + B) & 0xFF))",
+              "0x05": "SUB (pops B, A -> pushes ((A - B) & 0xFF))",
+              "0x06": "ROTL (pops A, arg: bits -> pushes rotl(A, bits))",
+              "0x07": "ASSERT_EQ_POP (pops B, A -> asserts A == B, fails if false)",
+              "0x08": "DUP (duplicates top of stack)",
+              "0xFF": "HALT_SUCCESS"
+            }
+          },
+          "bytecodeHex": {
+            "$random": "bytecodeHex",
+            "type": "string",
+            "lowercaseHex": true,
+            "length": 302,
+            "firstOpcode": "02",
+            "lastByte": "ff",
+            "instructions": 100,
+            "opcodesUsed": [
+              "01",
+              "02",
+              "03",
+              "04",
+              "06",
+              "07",
+              "08",
+              "ff"
+            ],
+            "keyIndexOrder": "012345670123456701234567",
+            "truncated": false
+          },
+          "sessionToken": {
+            "$random": "sessionToken",
+            "type": "string",
+            "containsDot": true,
+            "parts": 2,
+            "base64urlParts": true,
+            "claims": {
+              "keys": [
+                "expiresAt",
+                "gate",
+                "issuedAt",
+                "payload"
+              ],
+              "gate": 4,
+              "lifetimeSeconds": 20,
+              "payloadKeys": [
+                "bytecodeHex",
+                "targetKeyHex"
+              ]
+            }
+          },
+          "ttlSeconds": 20,
+          "submitEndpoint": "POST /api/gate4/submit",
+          "payloadSchema": {
+            "sessionToken": {
+              "$random": "sessionToken",
+              "type": "string",
+              "containsDot": false,
+              "parts": 1,
+              "base64urlParts": false,
+              "claims": "undecodable"
+            },
+            "keyHex": "string (16 hex characters representing 8 bytes key, e.g. 'a1b2c3d4e5f60718')"
+          }
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.missing-fields",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'sessionToken' or 'predictions' in request body."
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.missing-answer",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{\"sessionToken\":\"<gate 2 token>\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'sessionToken' or 'predictions' in request body."
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.non-json",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "raw body \"not json\" (content-type application/json)",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid JSON request body."
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.malformed-token",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{\"sessionToken\":\"nodot\",\"predictions\":[\"0\",\"0\",\"0\"]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Malformed session token format."
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.invalid-token",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{\"sessionToken\":\"x.y\",\"predictions\":[\"0\",\"0\",\"0\"]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid signature / token forgery detected."
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.wrong-answer",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{\"sessionToken\":\"<gate 2 token>\",\"predictions\":[\"0\",\"0\",\"0\"]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Prediction mismatch at step 1. Truncated LCG cryptanalysis failed. Internal state re-randomized."
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.wrong-count",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{\"sessionToken\":\"<gate 2 token>\",\"predictions\":[\"0\"]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Expected array of exactly 3 predicted integers."
+        }
+      }
+    },
+    {
+      "id": "gate2.submit.gate-mismatch",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{\"sessionToken\":\"<gate 4 token>\",\"predictions\":[\"0\",\"0\",\"0\"]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Token gate mismatch. Expected Gate 2, got Gate 4."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.missing-fields",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'sessionToken' or 'assignment' in request body."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.missing-answer",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{\"sessionToken\":\"<gate 3 token>\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'sessionToken' or 'assignment' in request body."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.non-json",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "raw body \"not json\" (content-type application/json)",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid JSON request body."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.malformed-token",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{\"sessionToken\":\"nodot\",\"assignment\":[true]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Malformed session token format."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.invalid-token",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{\"sessionToken\":\"x.y\",\"assignment\":[true]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid signature / token forgery detected."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.wrong-answer",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{\"sessionToken\":\"<gate 3 token>\",\"assignment\":\"<booleans that falsify clause 1>\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Clause #1 (<clause 1 literals>) violated! Unsatisfied constraints remain."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.not-array",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{\"sessionToken\":\"<gate 3 token>\",\"assignment\":\"true\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Expected assignment array of boolean values or DIMACS signed literals."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.gate-mismatch",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{\"sessionToken\":\"<gate 2 token>\",\"assignment\":[true]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Token gate mismatch. Expected Gate 3, got Gate 2."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.missing-fields",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'sessionToken' or 'keyHex' in request body."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.missing-answer",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{\"sessionToken\":\"<gate 4 token>\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'sessionToken' or 'keyHex' in request body."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.non-json",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "raw body \"not json\" (content-type application/json)",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid JSON request body."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.malformed-token",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{\"sessionToken\":\"nodot\",\"keyHex\":\"0000000000000000\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Malformed session token format."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.invalid-token",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{\"sessionToken\":\"x.y\",\"keyHex\":\"0000000000000000\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid signature / token forgery detected."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.wrong-answer",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{\"sessionToken\":\"<gate 4 token>\",\"keyHex\":\"0000000000000000\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "VM Execution Fault: ASSERT_EQ_POP check mismatch: \\d+ !== \\d+. Non-linear state chaining verification failed."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.bad-key-format",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{\"sessionToken\":\"<gate 4 token>\",\"keyHex\":\"zz\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Key must be exactly 16 hexadecimal characters (8 bytes)."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.gate-mismatch",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{\"sessionToken\":\"<gate 3 token>\",\"keyHex\":\"0000000000000000\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Token gate mismatch. Expected Gate 4, got Gate 3."
+        }
+      }
+    },
+    {
+      "id": "gate2.challenge.post",
+      "method": "POST",
+      "path": "/api/gate2/challenge",
+      "request": "(no body)",
+      "status": 405,
+      "headers": {
+        "content-type": null,
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "empty"
+      }
+    },
+    {
+      "id": "gate2.submit.expired",
+      "method": "POST",
+      "path": "/api/gate2/submit",
+      "request": "{\"sessionToken\":\"<expired gate 2 token>\",\"predictions\":[\"0\",\"0\",\"0\"]}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Challenge expired \\d+s ago! AI Agent response was too slow."
+        }
+      }
+    },
+    {
+      "id": "gate3.submit.expired",
+      "method": "POST",
+      "path": "/api/gate3/submit",
+      "request": "{\"sessionToken\":\"<expired gate 3 token>\",\"assignment\":\"<booleans that falsify clause 1>\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Challenge expired \\d+s ago! AI Agent response was too slow."
+        }
+      }
+    },
+    {
+      "id": "gate4.submit.expired",
+      "method": "POST",
+      "path": "/api/gate4/submit",
+      "request": "{\"sessionToken\":\"<expired gate 4 token>\",\"keyHex\":\"0000000000000000\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Challenge expired \\d+s ago! AI Agent response was too slow."
+        }
+      }
+    },
+    {
+      "id": "scoreboard.post.missing-fields",
+      "method": "POST",
+      "path": "/api/scoreboard",
+      "request": "{}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'agentName' or 'flag' parameter."
+        }
+      }
+    },
+    {
+      "id": "scoreboard.post.missing-flag",
+      "method": "POST",
+      "path": "/api/scoreboard",
+      "request": "{\"agentName\":\"contract_probe\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Missing 'agentName' or 'flag' parameter."
+        }
+      }
+    },
+    {
+      "id": "scoreboard.post.non-json",
+      "method": "POST",
+      "path": "/api/scoreboard",
+      "request": "raw body \"not json\" (content-type application/json)",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid request payload."
+        }
+      }
+    },
+    {
+      "id": "scoreboard.post.fake-flag",
+      "method": "POST",
+      "path": "/api/scoreboard",
+      "request": "{\"agentName\":\"contract_probe\",\"flag\":\"HAKU{FAKE_FLAG}\"}",
+      "status": 403,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "FLAG REJECTED: Invalid or fake flag token."
+        }
+      }
+    },
+    {
+      "id": "scoreboard.post.bad-handle",
+      "method": "POST",
+      "path": "/api/scoreboard",
+      "request": "{\"agentName\":\"!!!\",\"flag\":\"<gate 1 flag>\"}",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": false,
+          "message": "Invalid agentName character format."
+        }
+      }
+    },
+    {
+      "id": "scoreboard.post.accepted",
+      "method": "POST",
+      "path": "/api/scoreboard",
+      "request": "{\"agentName\":\"contract probe!\",\"flag\":\"<gate 1 flag>\"}",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "success": true,
+          "message": "FLAG ACCEPTED for Gate 1! +1000 points.",
+          "agent": {
+            "agentName": "contractprobe",
+            "gatesSolved": [
+              1
+            ],
+            "score": 1000,
+            "lastSolveAt": {
+              "$random": "lastSolveAt",
+              "type": "integer",
+              "positive": true
+            }
+          },
+          "proofBadge": null,
+          "allGatesCleared": false
+        }
+      }
+    },
+    {
+      "id": "scoreboard.get",
+      "method": "GET",
+      "path": "/api/scoreboard",
+      "request": "(no body)",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "json",
+        "value": {
+          "status": "ok",
+          "leaderboard": {
+            "$random": "leaderboard",
+            "type": "array",
+            "entriesWellFormed": true,
+            "sortedByScoreDesc": true,
+            "contractProbeEntry": {
+              "agentName": "contractprobe",
+              "gatesSolved": [
+                1
+              ],
+              "score": 1000,
+              "lastSolveAt": {
+                "$random": "lastSolveAt",
+                "type": "integer",
+                "positive": true
+              }
+            }
+          },
+          "totalAgents": {
+            "$random": "totalAgents",
+            "type": "integer",
+            "equalsLeaderboardLength": true
+          },
+          "gatePoints": {
+            "1": 1000,
+            "2": 2000,
+            "3": 2500,
+            "4": 3000
+          }
+        }
+      }
+    },
+    {
+      "id": "skill.api",
+      "method": "GET",
+      "path": "/api/skill",
+      "request": "(no body)",
+      "status": 200,
+      "headers": {
+        "content-type": "text/markdown; charset=utf-8",
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "bytes",
+        "length": 3928,
+        "sha256": "ea13d754f7fb161ffaf4366f9f18e6f439f1b085cc1133cca732bf42e9ae0fb9"
+      }
+    },
+    {
+      "id": "skill.static",
+      "method": "GET",
+      "path": "/skill.md",
+      "request": "(no body)",
+      "status": 200,
+      "headers": {
+        "content-type": "text/markdown; charset=UTF-8",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "bytes",
+        "length": 3928,
+        "sha256": "ea13d754f7fb161ffaf4366f9f18e6f439f1b085cc1133cca732bf42e9ae0fb9"
+      }
+    },
+    {
+      "id": "api.unknown-path",
+      "method": "GET",
+      "path": "/api/contract-probe-unknown",
+      "request": "(no body)",
+      "status": 404,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "access-control-allow-origin": null,
+        "access-control-allow-methods": null,
+        "access-control-allow-headers": null,
+        "allow": null
+      },
+      "body": {
+        "kind": "html"
+      }
+    }
+  ],
+  "rateLimits": [
+    {
+      "id": "ratelimit.gate1-chat",
+      "method": "POST",
+      "path": "/api/gate1/chat",
+      "request": "{\"prompt\":\"hello\"}",
+      "limit": 30,
+      "statuses": [
+        {
+          "status": 200,
+          "count": 30
+        },
+        {
+          "status": 429,
+          "count": 1
+        }
+      ],
+      "final": {
+        "id": "ratelimit.gate1-chat.over-limit",
+        "method": "POST",
+        "path": "/api/gate1/chat",
+        "request": "{\"prompt\":\"hello\"}",
+        "status": 429,
+        "headers": {
+          "content-type": "application/json",
+          "access-control-allow-origin": null,
+          "access-control-allow-methods": null,
+          "access-control-allow-headers": null,
+          "allow": null
+        },
+        "body": {
+          "kind": "json",
+          "value": {
+            "error": "Too Many Requests",
+            "message": "Rate limit exceeded. Retry in \\d+s."
+          }
+        }
+      }
+    },
+    {
+      "id": "ratelimit.gate-challenge",
+      "method": "GET",
+      "path": "/api/gate2/challenge",
+      "request": "(no body)",
+      "limit": 40,
+      "statuses": [
+        {
+          "status": 200,
+          "count": 40
+        },
+        {
+          "status": 429,
+          "count": 1
+        }
+      ],
+      "final": {
+        "id": "ratelimit.gate-challenge.over-limit",
+        "method": "GET",
+        "path": "/api/gate2/challenge",
+        "request": "(no body)",
+        "status": 429,
+        "headers": {
+          "content-type": "application/json",
+          "access-control-allow-origin": null,
+          "access-control-allow-methods": null,
+          "access-control-allow-headers": null,
+          "allow": null
+        },
+        "body": {
+          "kind": "json",
+          "value": {
+            "error": "Too Many Requests",
+            "message": "Rate limit exceeded. Retry in \\d+s."
+          }
+        }
+      }
+    },
+    {
+      "id": "ratelimit.scoreboard-post",
+      "method": "POST",
+      "path": "/api/scoreboard",
+      "request": "{\"agentName\":\"contract_probe\",\"flag\":\"HAKU{FAKE_FLAG}\"}",
+      "limit": 20,
+      "statuses": [
+        {
+          "status": 403,
+          "count": 20
+        },
+        {
+          "status": 429,
+          "count": 1
+        }
+      ],
+      "final": {
+        "id": "ratelimit.scoreboard-post.over-limit",
+        "method": "POST",
+        "path": "/api/scoreboard",
+        "request": "{\"agentName\":\"contract_probe\",\"flag\":\"HAKU{FAKE_FLAG}\"}",
+        "status": 429,
+        "headers": {
+          "content-type": "application/json",
+          "access-control-allow-origin": null,
+          "access-control-allow-methods": null,
+          "access-control-allow-headers": null,
+          "allow": null
+        },
+        "body": {
+          "kind": "json",
+          "value": {
+            "error": "Too Many Requests",
+            "message": "Rate limit exceeded. Anti-bruteforce sleep for \\d+s."
+          }
+        }
+      }
+    },
+    {
+      "id": "ratelimit.scoreboard-get",
+      "method": "GET",
+      "path": "/api/scoreboard",
+      "request": "(no body)",
+      "limit": 60,
+      "statuses": [
+        {
+          "status": 200,
+          "count": 60
+        },
+        {
+          "status": 429,
+          "count": 1
+        }
+      ],
+      "final": {
+        "id": "ratelimit.scoreboard-get.over-limit",
+        "method": "GET",
+        "path": "/api/scoreboard",
+        "request": "(no body)",
+        "status": 429,
+        "headers": {
+          "content-type": "application/json",
+          "access-control-allow-origin": null,
+          "access-control-allow-methods": null,
+          "access-control-allow-headers": null,
+          "allow": null
+        },
+        "body": {
+          "kind": "json",
+          "value": {
+            "error": "Too Many Requests",
+            "message": "Rate limit exceeded. Retry in \\d+s."
+          }
+        }
+      }
+    }
+  ]
+}

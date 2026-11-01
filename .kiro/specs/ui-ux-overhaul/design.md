@@ -2,7 +2,44 @@
 
 ## Overview
 
-@@OVERVIEW@@
+On afe2537 the AGENTGATE UI was a single 950-line client page. It layered decorative effects over 12px monospace text, used inflated copy, played sounds by default, never said what the site is or how an agent starts, and had accessibility gaps (bugfix.md section 1). The fix replaces that page with routed App Router views built mostly from server components. They sit on one small token-based design system, with plain copy that matches the API and explicit accessibility mechanisms. The agent surface stays frozen. Each defect marker in section 1 maps to one exploration test (X01 to X38) that must fail on afe2537 and pass after the fix. Each preserved behavior in section 3 maps to a preservation test (K01 to K20) that compares the fixed build with c6d13ea.
+
+**Design decisions**
+
+- **Routes:** `/` (Overview), `/gates/1` to `/gates/4` (`/gates` redirects to `/gates/1`), `/scoreboard`, `/docs`, and `/console`, plus a not-found page. Each view has its own URL and title (2.20).
+- **Typefaces:** IBM Plex Sans for interface text and IBM Plex Mono for code and data, both loaded through `next/font` (2.4, see Typefaces).
+- **Color:** graphite neutrals and one ice accent, #62c9f0 (`oklch(0.790 0.110 225)`), used for actions, links, focus, and the current view (2.2, see Tokens).
+- **skill.md:** an in-house Markdown renderer in `src/lib/markdown.ts`, read on the server at build time. No Markdown or math package is added (2.19, R6).
+- **Dependencies:** `canvas-confetti` and `@types/canvas-confetti` are removed (2.26). `playwright-core` and `fast-check` are added as devDependencies for tests only (3.19, R16).
+- **Resolutions applied in this document:**
+  - R1: the expiring threshold is per gate, in src/lib/gates.ts: 5 s for Gates 2 and 4, 3 s for Gate 3.
+  - R2: busy controls get `aria-disabled="true"` and `data-busy`, keep focus, and ignore activation. Native `disabled` is used only for unavailable controls.
+  - R3: the shell is two rows at every width. header, nav, main, and footer are siblings. The navs are labelled "Primary", "Gates" (GateStepper), and "Gate pages" (GatePager). One Announcer is the last child of main, and a second sits in the flag dialog.
+  - R4: the 360px fit relies on X37, nowrap labels, and a wrapping nav list, not on Inter-based width estimates.
+  - R5: the Copy section owns every UI string.
+  - R6: Docs reads skill.md at build time, with no client fetch and no loading state. It offers "View raw file" and the production skill.md URL with its own copy control.
+  - R7: the scoreboard's G1 to G4 chips have an icon and the names "Gate N: solved" or "Gate N: not solved".
+  - R8: copy controls have a constant name starting with "Copy", check the clipboard promise, announce once, and stay disabled until hydration.
+  - R9: the sound toggle is `<button aria-pressed>` named "Sound effects", starting false.
+  - R10: endpoint copy controls copy the production URL and are named "Copy URL for {METHOD} {PATH}".
+  - R11: GatePager shows "Previous: Overview" on Gate 1 and "Next: Scoreboard" on Gate 4.
+  - R12: src/lib/api.ts classifies responses with one ordered rule list.
+  - R13: the handle check warns, doesn't block, and previews the cleaned handle.
+  - R14: Gate 4 accepts a lowercase `0x` prefix and any letter case. This was checked against c6d13ea.
+  - R15: not-found.tsx, icon.svg, app-state.ts, format.ts, and Announcer.tsx are part of the design.
+  - R16: browser tests use playwright-core with the installed Chrome.
+  - R17: `allowImportingTsExtensions` with relative `.ts` imports in the pure modules, with tests/tsconfig.json as the fallback.
+  - R18: the countdown has three states: live, expiring, and expired.
+- **HELL mode (c6d13ea):** gate facts follow the code at c6d13ea (bugfix.md A3). "Hell" appears once per page as "Difficulty: Hell" (A14), and src/lib/gates.ts is the single source for gate facts (A15).
+
+**Status.** The fix was implemented in commit 2516aa1. This document audits it at c6d13ea, which also changed the agent surface on purpose. Files that already exist at HEAD are marked "exists at HEAD, audit" in Changes Required. tasks.md lists the gap fixes.
+
+**Open questions**
+
+1. A14 (the "Difficulty: Hell" label) and A15 (gates.ts as the single source) are proposed and not yet confirmed.
+2. Should Gate 1's try-it area get a nonce helper that searches for a passing nonce in the browser? A6 keeps it out of scope until the user decides. Without one, a prompt typed by hand passes the proof-of-work check about 1 time in 65,536.
+3. The c6d13ea solver points at production and registers JABRIK. Verification runs a temporary copy against localhost:3008. Should the original also run against production after deploy? That would write to the live scoreboard.
+4. Some response text in frozen files is stale: Gate 2 says "Calculate A and C from the 5 consecutive numbers", Gate 3 says 60 variables and 255 clauses, and Gate 4 says "8-opcode". The Gate 3 verifier also reads any 120- or 121-entry array by position, so skill.md's signed-literal example only works at other lengths. The UI works around both. Fixing the API is a separate decision.
 
 ## Glossary
 
@@ -10,18 +47,20 @@
 - **Bug_Condition (C)**: predicate `isBugCondition(X)`. It holds when X shows at least one defect marker from bugfix.md section 1.
 - **Defect marker**: one detectable symptom from clauses 1.1 to 1.35, paired with one exploration test (X01 to X38 below).
 - **Property (P)**: predicate `expectedBehavior(X)`. It holds when X satisfies every applicable clause 2.1 to 2.35.
-- **Preservation**: for every input outside C (agent API traffic, skill.md requests, the reference solver, console command semantics, and the flows in 3.4 to 3.18), the fixed system F' behaves the same as the baseline F.
-- **F (baseline)**: the code at commit afe2537, which is HEAD when the tasks phase starts. Built with `npm run build` and served by `next start -p 3008`.
-- **F' (fixed)**: the code after the fix tasks, built and served the same way.
-- **Frozen set Z**: `src/app/api/**`, `src/lib/challenges.ts`, `src/lib/crypto.ts`, `src/lib/ratelimit.ts`, and `public/skill.md`. Each file stays byte-identical to afe2537.
-- **UI code U**: every file under src/ that is not in Z. This is the scope of the UI-only lint command (2.35).
+- **Preservation**: for every input outside C (agent API traffic, skill.md requests, the reference solver, console command semantics, and the flows in 3.4 to 3.18), the fixed system F' behaves the same as the preservation baseline F_api.
+- **F_bug (bug baseline)**: the code at commit afe2537, where the defects in section 1 were measured. Its exploration counterexamples were recorded during the requirements phase and are kept in `%TEMP%\agentgate-baseline`. Source and static exploration tests (kinds S and H) can be re-run on a worktree made with `git worktree add <tmp> afe2537`. Browser exploration on F_bug is not re-run.
+- **F_api (preservation baseline)**: the code at commit c6d13ea ("HELL mode"), which is HEAD when the tasks phase starts. It already contains the UI fix from 2516aa1 and the deliberate agent-surface changes from c6d13ea. It is the baseline for the agent surface, the frozen-file diff, and the visitor flows in 3.4 to 3.18. Built with `npm run build` and served by `next start -p 3008`.
+- **F (baseline)**: shorthand used in the pseudocode. It means F_bug in exploration and fix checking, and F_api in preservation checking.
+- **F' (fixed)**: the code after the gap-fix tasks in tasks.md, built and served the same way.
+- **Frozen set Z**: `src/app/api/**`, `src/lib/challenges.ts`, `src/lib/crypto.ts`, `src/lib/ratelimit.ts`, `public/skill.md`, and `test_agent_solver.py`. Each file stays byte-identical to c6d13ea (A3).
+- **UI code U**: every file under src/ that is not in Z. It includes src/lib/gates.ts and src/components/gates/Gate2Instance.tsx, which c6d13ea edited. This is the scope of the UI-only lint command (2.35).
 - **Server under test**: a production server on http://localhost:3008. Tests read `BASE_URL`, which defaults to that address.
-- **Probe IP**: a value in 198.18.0.0/15 (the RFC 2544 benchmark range) that a test sends as `cf-connecting-ip`. `src/lib/ratelimit.ts` takes the client IP from that header first, so each test file gets its own rate-limit bucket and leaves the 127.0.0.1 bucket to the reference solver.
-- **Fixture**: a file under `tests/fixtures/baseline/` captured from F before any UI change. It is committed and never regenerated from F'.
-- **Oracle**: a function under `tests/fixtures/baseline/` that reproduces one baseline behavior of F that moves into a new module in F'. Examples are the console branching in page.tsx and the handle cleanup in the scoreboard route. A source-tie test proves that each oracle literal or regex appears verbatim in `git show afe2537:<path>`.
-- **Subject**: the implementation a module-level preservation test checks. `tests/preserve/subjects.ts` maps each subject to its oracle before the fix and to the new src/lib module after it. That file is the only one that changes between the two runs.
-- **View adapter**: `tests/support/views.ts`. It finds views, gate areas, fields, and buttons by visible text or label, with the selectors of both F and F', so the same browser preservation tests run on both builds.
-- **Counterexample**: the concrete X recorded when an exploration test fails on F.
+- **Probe IP**: a value in 198.18.0.0/15 (the RFC 2544 benchmark range) that a test sends as `cf-connecting-ip`. `src/lib/ratelimit.ts` takes the client IP from that header first, so each test file gets its own rate-limit bucket. The c6d13ea solver sends `cf-connecting-ip: 198.18.99.1` itself, so no test may use that address.
+- **Fixture**: a file under `tests/fixtures/baseline/` captured from F_api before any gap fix. It is committed and never regenerated from F'.
+- **Oracle**: a function under `tests/fixtures/baseline/` that reproduces one baseline behavior, of F_bug (logic that moved out of the old page) or of F_api (agent-surface facts). Examples are the console branching in page.tsx and the handle cleanup in the scoreboard route. A source-tie test proves that each oracle literal or regex appears verbatim in `git show afe2537:<path>` (behavior moved out of the old page) or `git show c6d13ea:<path>` (agent-surface facts).
+- **Subject**: the implementation a module-level preservation test checks. `tests/preserve/subjects.ts` maps each subject to its src/lib module. The fix is already applied, so the subjects point at the modules from the start, and the oracles are the reference.
+- **View adapter**: `tests/support/views.ts`. It finds views, gate areas, fields, and buttons by visible text or label. F_api and F' share the routed UI, so one set of selectors serves both.
+- **Counterexample**: the concrete X recorded when an exploration test fails on F_bug, or on HEAD while gaps remain.
 
 ## Bug Details
 
@@ -63,7 +102,7 @@ END FUNCTION
 
 ### Examples
 
-These examples were measured on F, or follow directly from F's source:
+These examples were measured on F_bug, or follow directly from its source:
 
 - `GET /docs`, `/scoreboard`, `/console`, and `/gates/1` return 404. Expected: 200 with that view, and `/gates` redirects to `/gates/1`.
 - At 360×780, the "Protocol Spec" button wraps to 44px tall next to 28px neighbors, and the four-button row is 318px wide inside a 294px box. Expected: no wrapping or clipping.
@@ -78,14 +117,14 @@ These examples were measured on F, or follow directly from F's source:
 
 ### Preservation Requirements
 
-The non-bug domain ¬C splits into four parts. Each part has its own baseline capture, so the preserved behavior is observed on F, not assumed:
+The non-bug domain ¬C splits into four parts. Each part has its own baseline capture, so the preserved behavior is observed on F_api (c6d13ea), not assumed:
 
 | Part | Inputs | Baseline captured as | Clauses |
 |---|---|---|---|
 | Agent surface | every `/api/*` request, `/skill.md`, the solver run | `api-contract.json`, `solver.txt`, the git diff of Z | 3.1, 3.2, 3.3 |
 | Moved logic | console commands, handle cleanup, input trimming, Gate 3 JSON parsing, gate metadata | oracles plus source-tie tests | 3.8, 3.9, 3.10, 3.16, and the server half of 2.16 |
-| Visitor flows | flag submit and feedback, auto-fill, Gate 1 send, instance lifecycle, scoreboard listing, skill.md copy, state across navigation, request budget | browser runs through the view adapter on F | 3.4 to 3.7, 3.11, 3.12, 3.14, 3.15 |
-| Site invariants | Haku Digital credit and author metadata, no emoji, English and dark only, no page scroll at 360px, build passes, dependency split | HTML, rendered-text, and package.json checks on F | 3.13, 3.17, 3.18, 3.19 |
+| Visitor flows | flag submit and feedback, auto-fill, Gate 1 send, instance lifecycle, scoreboard listing, skill.md copy, state across navigation, request budget | browser runs through the view adapter on F_api | 3.4 to 3.7, 3.11, 3.12, 3.14, 3.15 |
+| Site invariants | Haku Digital credit and author metadata, no emoji, English and dark only, no page scroll at 360px, build passes, dependency split | HTML, rendered-text, and package.json checks on F_api | 3.13, 3.17, 3.18, 3.19 |
 
 Text that the fix must change is outside the preservation domain, even where a 3.x clause covers the same flow. Examples are the console help wording (2.21) and the label "Verified Complete" (2.23). For those flows, preservation tests compare information, not wording. Console, scoreboard, and server messages are compared by content as described in "Preservation Checking". Server messages come from frozen files, so they are compared verbatim.
 
@@ -105,15 +144,15 @@ The exploration tests confirm or refute each of these hypotheses. Hypothesis 4 i
 
 Property 1: Bug Condition - The UI shows no defect marker
 
-_For any_ UI observation X where the bug condition holds on the baseline (isBugCondition(X) is true on F), the fixed system F' SHALL satisfy expectedBehavior(X). Every defect marker X01 to X38 SHALL be absent and its 2.x assertion SHALL hold, at each viewport and motion setting where the marker applies.
+_For any_ UI observation X where the bug condition holds on the bug baseline (isBugCondition(X) is true on F_bug), the fixed system F' SHALL satisfy expectedBehavior(X). Every defect marker X01 to X38 SHALL be absent and its 2.x assertion SHALL hold, at each viewport and motion setting where the marker applies.
 
 **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 2.13, 2.14, 2.15, 2.16, 2.17, 2.18, 2.19, 2.20, 2.21, 2.22, 2.23, 2.24, 2.25, 2.26, 2.27, 2.28, 2.29, 2.30, 2.31, 2.32, 2.33, 2.34, 2.35**
 
 Property 2: Preservation - The agent surface and visitor flows are unchanged
 
-_For any_ input where the bug condition does not hold (agent and solver traffic to `/api/*`, `/api/skill`, and `/skill.md`, the frozen files, and the visitor flows in 3.4 to 3.18), F' SHALL produce the same observable result as F. This means:
+_For any_ input where the bug condition does not hold (agent and solver traffic to `/api/*`, `/api/skill`, and `/skill.md`, the frozen files, and the visitor flows in 3.4 to 3.18), F' SHALL produce the same observable result as F_api (c6d13ea). This means:
 
-- byte-identical frozen files
+- frozen files byte-identical to c6d13ea
 - the same status codes and the same response shapes and values, apart from random fields
 - the same skill.md bytes and headers
 - four accepted solver flags and a Proof-of-Pwn badge
@@ -121,7 +160,7 @@ _For any_ input where the bug condition does not hold (agent and solver traffic 
 
 ```
 FOR ALL x WHERE NOT isBugCondition(x) DO
-  ASSERT normalize(F(x)) = normalize(F'(x))   // normalize drops random fields only
+  ASSERT normalize(F_api(x)) = normalize(F'(x))   // normalize drops random fields only
 END FOR
 ```
 
@@ -141,7 +180,7 @@ _For any_ string s, `validateHandle(s)` SHALL accept s exactly when the server's
 
 Property 5: Preservation - Gate payloads keep trimming and pass-through
 
-_For any_ Gate 2 values (a, b, c) and Gate 4 key k with arbitrary surrounding whitespace, the submitted JSON body SHALL be `{ sessionToken, predictions: [a.trim(), b.trim(), c.trim()] }` in the order X6, X7, X8, and `{ sessionToken, keyHex: k.trim() }`. _For any_ Gate 3 text t: if `JSON.parse(t)` throws, the system SHALL send no request and return exactly "Malformed assignment array. Expected valid JSON format.". Otherwise the body's `assignment` SHALL deep-equal `JSON.parse(t)`, including boolean arrays, signed-literal arrays, and non-array JSON values.
+_For any_ Gate 2 values (a, b, c) and Gate 4 key k with arbitrary surrounding whitespace, the submitted JSON body SHALL be `{ sessionToken, predictions: [a.trim(), b.trim(), c.trim()] }` in the order X5, X6, X7, and `{ sessionToken, keyHex: k.trim() }`. _For any_ Gate 3 text t: if `JSON.parse(t)` throws, the system SHALL send no request and return exactly "Malformed assignment array. Expected valid JSON format.". Otherwise the body's `assignment` SHALL deep-equal `JSON.parse(t)`, including boolean arrays, signed-literal arrays, and non-array JSON values.
 
 **Validates: Requirements 3.7, 3.8, 3.9**
 
@@ -408,7 +447,7 @@ Rules:
 - **Content width.** Page container `mx-auto w-full max-w-6xl` (1152px). Docs prose and the Overview intro `max-w-2xl` (672px, about 75 characters at 16px). Docs code blocks and tables can use the full container width and scroll inside themselves.
 - **Gutters.** `px-4` (16px) below 640px, giving a 328px content box at 360px; `sm:px-6` (24px); `lg:px-8` (32px).
 - **Vertical rhythm.** Header 56px (`h-14`). Space between page title and content `mt-6`. Between sections `gap-12`, `lg:gap-16`. Inside cards `gap-4`.
-- **Header at narrow widths.** Below 640px the header is two rows: brand and actions on the first, nav on the second. The nav list is `flex flex-wrap gap-1` and every item is `whitespace-nowrap`. Labels then never wrap or clip at 360px, and if the five items don't fit on one line the list wraps onto a second line.
+- **Shell rows (R3).** At every width the shell is two rows: the header row (brand and actions), then the nav row. The nav list is `flex flex-wrap gap-1` and every item is `whitespace-nowrap`. Labels then never wrap or clip at 360px, and if the five items don't fit on one line the list wraps onto a second line.
 - **Gate page.** At `lg` and above, two columns: reference (description, endpoints, payload fields) and try-it, split 5:7. Single column below `lg`.
 - **Elevation.** Lightness steps only: inset < canvas < surface < surface-hover. The dialog is the only element with a shadow (`shadow-dialog`, black, no hue). No glows, colored shadows, hover lifts, or blurs.
 
@@ -419,7 +458,7 @@ Shared rules:
 - Every transition is `transition-colors duration-120 ease-standard`.
 - Button sizes: `md` is `h-9 px-4 gap-2` and `sm` is `h-8 px-3 gap-1.5`. Labels are `text-ui font-medium`, icons `size-4`.
 - At most one primary per gate, form, or section. In a gate's try-it area the primary is "Request instance" when idle or expired, and "Submit" while an instance is live. The request control then becomes secondary ("Request new instance"). In the flag form the primary is "Submit flag". On Overview it is the "Read the docs" link styled as primary. The header "Submit flag" button is secondary so it doesn't compete with page primaries.
-- Busy controls carry `disabled` and `data-busy`. Disabled styles are written as `disabled:not-data-busy:*`, so a busy control keeps its normal colors with `cursor-progress` and doesn't look unavailable.
+- Busy controls (R2) carry `aria-disabled="true"` and `data-busy`, not the native `disabled` attribute, so they keep focus. Their click and submit handlers return early while busy. Native `disabled` is used only for controls that are unavailable, such as Submit on an expired instance. Busy styles are written as `data-busy:*`, so a busy control keeps its normal colors with `cursor-progress` and doesn't look unavailable. Tests accept either attribute as "disabled".
 
 | Control | Default | Hover | Focus-visible | Active | Disabled | Busy |
 |---|---|---|---|---|---|---|
@@ -427,17 +466,17 @@ Shared rules:
 | Secondary button | `bg-surface text-fg border border-line-control` | `bg-surface-hover border-fg-muted` | Ring | `bg-inset` | Same as primary disabled | Same pattern as primary |
 | Quiet button | `bg-transparent text-fg-secondary` | `bg-surface-hover text-fg` | Ring | `bg-line text-fg` | `text-fg-disabled bg-transparent` | n/a |
 | Icon button | Quiet geometry `size-9` (`size-8` in dense rows), icon `size-4`, `aria-label` required | Quiet hover | Ring | Quiet active | Quiet disabled | n/a |
-| Sound toggle | Icon button with `aria-pressed`: `VolumeX` plus visible "Sound off" from `sm` up, `Volume2` plus "Sound on" when pressed | Quiet hover | Ring | Quiet active | n/a | n/a |
+| Sound toggle (R9) | `<button aria-pressed="false" aria-label="Sound effects">` on load. `VolumeX` plus visible "Sound off" from `sm` up, `Volume2` plus "Sound on" when pressed. The icon and the visible text are `aria-hidden`, so the name stays "Sound effects" and `aria-pressed` carries the state | Quiet hover | Ring | Quiet active | n/a | n/a |
 | Text input | `h-9 w-full rounded-md border border-line-control bg-inset px-3 text-ui text-fg placeholder:text-fg-muted`; data fields (flag, hex key, predictions, console) add `font-mono text-code` | `border-fg-muted` | Ring (border unchanged) | n/a | `bg-canvas border-line text-fg-disabled cursor-not-allowed` | n/a |
 | Textarea | Text input styles plus `min-h-24 py-2 resize-y`; Gate 1 prompt in sans, Gate 3 assignment in mono | Same | Ring | n/a | Same | n/a |
 | Validation error | `aria-invalid:border-error` on the field. Below it: `mt-1.5 flex gap-1.5 text-ui text-error` with `CircleX` `size-4` and text such as "Agent handle is required", linked by `aria-describedby` | n/a | Ring | n/a | n/a | n/a |
 | Field label and hint | Label `text-ui font-medium text-fg mb-1.5`. Hint `text-ui text-fg-muted mt-1.5`, for example "16 hex characters" | n/a | n/a | n/a | n/a | n/a |
 | Nav item | `relative h-9 px-3 rounded-md text-ui font-medium text-fg-secondary whitespace-nowrap` (`px-2` below 640px) | `bg-surface-hover text-fg` | Ring | `bg-line` | n/a | n/a |
 | Nav item, current | `aria-current="page"`: `text-fg bg-surface-hover font-semibold`, plus a 2px bar `after:absolute after:inset-x-3 after:bottom-1 after:h-0.5 after:rounded-full after:bg-accent`. The bar and weight are the non-color cues | Same | Ring | Same | n/a | n/a |
-| Copy control | Secondary `sm`, `min-w-24` so the width doesn't change: `Copy` icon + "Copy" (or "Copy URL", "Copy flag", "Copy badge", "Copy skill.md") | Secondary hover | Ring | Secondary active | Secondary disabled, used for skill.md before it loads | n/a |
-| Copy control, copied | `Check` icon + "Copied", `text-success`, for 2000ms, then idle | Same | Ring | n/a | n/a | n/a |
-| Copy control, failed | `CircleX` icon + "Copy failed", `text-error`, for 4000ms, then idle | Same | Ring | n/a | n/a | n/a |
-| Copy control, icon-only (endpoint rows) | Icon button `size-8` with `aria-label="Copy POST /api/gate1/chat"`. State text "Copied" or "Copy failed" appears next to it in `text-ui` with the same colors | Same | Ring | Same | n/a | n/a |
+| Copy control (R8) | Secondary `sm`, `min-w-24` so the width doesn't change: `Copy` icon + "Copy" (or "Copy URL", "Copy flag", "Copy badge", "Copy skill.md"). The accessible name is constant and starts with "Copy" | Secondary hover | Ring | Secondary active | Native `disabled` until hydration, detected with `useSyncExternalStore` (server snapshot false, client snapshot true) | n/a |
+| Copy control, copied | `Check` icon + "Copied" in an `aria-hidden` span, `text-success`, for 2000ms, then idle. Shown only after the `navigator.clipboard.writeText` promise resolves. One announcement goes through the Announcer | Same | Ring | n/a | n/a | n/a |
+| Copy control, failed | `CircleX` icon + "Copy failed" in an `aria-hidden` span, `text-error`, for 4000ms, then idle. Shown when the promise rejects or the Clipboard API is missing, with one announcement | Same | Ring | n/a | n/a | n/a |
+| Copy control, icon-only (endpoint rows, R10) | Icon button `size-8` with `aria-label="Copy URL for POST /api/gate1/chat"`. It copies `https://ctf.hakudigital.tech` plus the path. State text "Copied" or "Copy failed" appears next to it in an `aria-hidden` span in `text-ui` with the same colors | Same | Ring | Same | n/a | n/a |
 | HTTP method badge | `inline-flex h-5 items-center rounded-sm bg-surface-hover px-1.5 font-mono text-code-sm text-fg`. GET and POST are told apart by their text, not by color | n/a | n/a | n/a | n/a | n/a |
 | Endpoint row | Method badge + path `font-mono text-code text-fg wrap-anywhere` + icon-only copy control, `gap-2` | n/a | n/a | n/a | n/a | n/a |
 | Code block | `rounded-md border border-line bg-inset p-4 font-mono text-code text-fg whitespace-pre overflow-x-auto`. When it can scroll it gets `tabIndex={0}` and an accessible name, so it takes the ring | n/a | Ring | n/a | n/a | n/a |
@@ -542,7 +581,7 @@ Status badges share `inline-flex h-6 items-center gap-1 rounded-sm border px-2 t
 | `/console` | src/app/console/page.tsx | static shell, client view | `Console` |
 | any other path | src/app/not-found.tsx | rendered inside the root layout | `Page not found` |
 
-The layout sets `title: { default: "AGENTGATE CTF by Haku Digital", template: "%s · AGENTGATE CTF" }`. The copy part owns the exact strings. The App Router route announcer (`node_modules/next/dist/client/components/app-router-announcer.js`) reads `document.title` after each client navigation, so a distinct title per view is how a screen reader hears the view change.
+The layout sets `title: { default: "AGENTGATE CTF by Haku Digital", template: "%s · AGENTGATE CTF" }`. The Copy section owns the exact strings. The App Router route announcer (`node_modules/next/dist/client/components/app-router-announcer.js`) reads `document.title` after each client navigation, so a distinct title per view is how a screen reader hears the view change.
 
 Navigation labels and targets, in this order: Overview `/`, Gates `/gates/1`, Scoreboard `/scoreboard`, Docs `/docs`, Console `/console`. Every view is one link away from every other view through this nav, so 2.20's "one step away" holds for the gates, the scoreboard, and the documentation.
 
@@ -576,8 +615,8 @@ function sectionOf(pathname: string): NavKey {
 ```
 
 - The current item gets `aria-current="page"` when the pathname equals its `href`, and `aria-current="true"` when the pathname is only inside its section. The second case is the Gates item (href `/gates/1`) on `/gates/2` to `/gates/4`.
-- The current item is shown by a 2px bar under the label and a heavier label weight as well as by color (2.33). The visual part picks the tokens.
-- On a gate page, GateStepper (a `<nav aria-label="Gate pages">` inside `main`) marks the exact gate with `aria-current="page"`. The primary nav says "you are in Gates", and the stepper says "Gate 3".
+- The current item is shown by a 2px bar under the label and a heavier label weight as well as by color (2.33). The Visual System section picks the tokens.
+- On a gate page, GateStepper (a `<nav aria-label="Gates">` inside `main`) marks the exact gate with `aria-current="page"`. The primary nav says "you are in Gates", and the stepper says "Gate 3". GatePager at the foot of the page is a separate `<nav aria-label="Gate pages">` (R3).
 
 #### Site shell
 
@@ -590,18 +629,20 @@ The DOM order in src/app/layout.tsx is:
       <a href="#main" className="skip-link">Skip to content</a>
       <SiteHeader />                         {/* <header> landmark */}
       <PrimaryNav />                         {/* <nav aria-label="Primary"> landmark */}
-      <main id="main" tabIndex={-1}>{children}</main>
+      <main id="main" tabIndex={-1}>
+        {children}
+        <Announcer />                        {/* polite live region, visually hidden, last child of main */}
+      </main>
       <SiteFooter />                         {/* <footer> landmark */}
-      <Announcer />                          {/* polite live region, visually hidden */}
     </AppStateProvider>
   </body>
 </html>
 ```
 
-Header, nav, main, and footer are siblings, as 2.31 requires. The nav is a sibling of the header, not a child, even though the two read as one bar.
+Header, nav, main, and footer are siblings, as 2.31 requires (R3). AppStateProvider renders only a context provider and no wrapping element, so the four landmarks are direct children of `<body>` next to the skip link. The nav is a sibling of the header, not a child, even though the two read as one bar. A second Announcer lives inside FlagDialog's `<dialog>`, because a modal dialog makes the rest of the page inert and a live region outside it may not be read.
 
 - **SiteHeader (row 1, 56px tall).** It holds the wordmark "AGENTGATE" on the left, a `<Link href="/">` with no h1 because each page owns its h1. On the right are the "Submit flag" button, which opens FlagDialog, and the sound toggle.
-- **PrimaryNav (row 2, 44px tall).** Five links in one row, with a 1px divider above and below.
+- **PrimaryNav (row 2, 44px tall).** `<nav aria-label="Primary">` with five links in a list that wraps, with a 1px divider above and below.
 - **SiteFooter.** It has the line "AGENTGATE is built by Haku Digital", where "Haku Digital" links to https://hakudigital.tech with `target="_blank"`, `rel="noopener noreferrer"`, and visually hidden text "(opens in a new tab)" (2.31, 3.13). It also links to Docs (`/docs`) and the raw file (`/skill.md`, same tab). The footer makes no status claims (2.22).
 - **Not sticky.** The header and nav scroll away with the page. A sticky bar would take 100px of a 780px screen on every scroll and could hide focused elements (WCAG 2.4.11).
 
@@ -614,32 +655,9 @@ Two rows at every width, rejected alternatives:
 
 The page gutter is 16px on each side below 640px and 24px at 640px and wider. At 360px the content box is 360 − 2 × 16 = 328px.
 
-Label widths are estimated at 14px from the `xWidthAvg` values in `node_modules/next/dist/server/capsize-font-metrics.json`, with 15% added for capitals and medium weight. The Inter figures are below, and Geist and Public Sans come out within 3%.
+The earlier per-label width estimates came from the Inter metrics in `node_modules/next/dist/server/capsize-font-metrics.json`. IBM Plex Sans has no entry in that file, so the estimates don't apply and are dropped (R4). Fit at 360px rests on three things instead: every nav label and button label is `white-space: nowrap`, the nav list wraps, and X37 measures the rendered shell at 360px and at 200% zoom.
 
-| Label | Estimate | +15% |
-|---|---|---|
-| Overview | 53.5 | 61.5 |
-| Gates | 33.4 | 38.4 |
-| Scoreboard | 66.9 | 76.9 |
-| Docs | 26.7 | 30.7 |
-| Console | 46.8 | 53.8 |
-| **Total** | 227.3 | **261.3** |
-| Submit flag | 73.5 | 84.5 |
-
-**Row 2 (nav) below 640px.** Each link has 4px horizontal padding, a gap of 0, and is `flex: 1 1 auto`, so free space is shared out. The row needs 261.3 + 5 × 8 = 301.3px out of 328px, which leaves 26.7px of slack at the padded estimate and 60.7px at the raw estimate. Each link is at least 44px tall. The narrowest link, Docs, is 30.7 + 8 = 38.7px wide, above the 24px minimum target size in WCAG 2.5.8.
-
-**Row 2 at 640px and wider.** Links have 12px padding and `flex: 0 0 auto` and are left-aligned. The row needs 261.3 + 120 = 381.3px, and the narrowest content box at 640px is 592px.
-
-**Row 1 at 360px.** The parts are:
-- Wordmark "AGENTGATE": 9 capitals at 16px semibold, about 98px.
-- Flexible gap: at least 8px.
-- "Submit flag" button: 84.5 + 2 × 12 padding = 108.5px wide and 36px tall.
-- Gap: 8px.
-- Sound toggle: 40 × 40px.
-
-That totals 98 + 8 + 108.5 + 8 + 40 = 262.5px of 328px, which leaves 65.5px of slack.
-
-**Fallback.** The nav `<ul>` uses `flex-wrap: wrap`, and each link uses `white-space: nowrap`. At default text size all five links sit on one line at 360px. With 200% text-only zoom (2.28) or a 320px viewport, whole links move to a second line, and a label never breaks or clips (2.34). The page never scrolls horizontally because nothing in the shell has a fixed width.
+**Rule.** The nav `<ul>` uses `flex-wrap: wrap`, and each link uses `white-space: nowrap`. If the five links don't fit on one line at 360px, the list takes a second line. With 200% text-only zoom (2.28) or a 320px viewport, whole links move to a second line, and a label never breaks or clips (2.34). The page never scrolls horizontally because nothing in the shell has a fixed width.
 
 ### View Layouts
 
@@ -648,7 +666,7 @@ The breakpoints are Tailwind defaults: `sm` 640px and `lg` 1024px. Content is `m
 #### Overview (`/`)
 
 Content blocks in order:
-1. **Intro** (h1 "AGENTGATE", 2–3 sentences). What it is: a capture-the-flag for autonomous AI agents, with four gates covering prompt-filter evasion, LCG prediction, 3-SAT solving, and stack-VM bytecode reversing. Who it's for: people who build agents and want to test them. What the browser part is for: reading the API and inspecting live instances. The copy part owns the wording.
+1. **Intro** (h1 "AGENTGATE", 2–3 sentences). What it is: a capture-the-flag for autonomous AI agents, with four gates covering prompt-filter evasion, LCG prediction, 3-SAT solving, and stack-VM bytecode reversing. Who it's for: people who build agents and want to test them. What the browser part is for: reading the API and inspecting live instances. The Copy section owns the wording.
 2. **Connection details** (h2 "Connect an agent"). Three rows, each a label with a mono value and a CopyButton:
    - Base URL: `https://ctf.hakudigital.tech`
    - skill.md: `https://ctf.hakudigital.tech/skill.md`
@@ -675,14 +693,14 @@ URL fit at 360px: the connection card is 328 − 2 × 16 = 296px inside. A row h
 #### Gate page (`/gates/N`)
 
 Content blocks in order:
-1. **GateStepper.** `<nav aria-label="Gate pages">` with four links, "Gate 1" to "Gate 4". The current gate has `aria-current="page"`. At 360px: 4 × (about 46px of label + 16px padding) = 248px of 328px.
-2. **Heading.** h1 "Gate N: Name", with a line under it giving the points ("1,250 points") and the TTL ("Instances expire after 10 s"; Gate 1 has "No time limit").
-3. **Description** (`GateMeta.description`). Plain text that matches the API and skill.md. For Gate 2 it says the multiplier is given (2.22).
+1. **GateStepper.** `<nav aria-label="Gates">` with four links, "Gate 1" to "Gate 4". The current gate has `aria-current="page"`. The list wraps, and labels don't.
+2. **Heading.** h1 "Gate N: Name", with the name as the API gives it (A14). A line under it gives the points ("2,500 points"), the TTL ("Instances expire after 10 s"; Gate 1 has "No time limit"), and the label "Difficulty: Hell".
+3. **Description** (`GateMeta.description`). Plain text that matches the API's behavior at c6d13ea and skill.md (2.22). For Gate 2 it says the outputs are truncated and that A and C are given. For Gate 1 it states the four checks, including the proof-of-work rule (2.8).
 4. **Endpoints** (h2). A `<ul>` with one row per endpoint: the method as a text badge (`GET` / `POST`), the path in mono, a short purpose ("Get an instance" / "Submit an answer"), and a CopyButton. CopyButton copies the absolute production URL, for example `https://ctf.hakudigital.tech/api/gate2/challenge`, and its accessible name is "Copy URL for GET /api/gate2/challenge".
-5. **Request payload** (h2). A `<table>` with columns Field (mono), Type, and Notes, built from `GateMeta.requestFields`. Example rows for Gate 2: `sessionToken` / string / "From the challenge response", and `predictions` / array of 3 strings / "X6, X7, X8 as decimal integers".
+5. **Request payload** (h2). A `<table>` with columns Field (mono), Type, and Notes, built from `GateMeta.requestFields`. Example rows for Gate 2: `sessionToken` / string / "From the challenge response", and `predictions` / array of 3 strings / "X5, X6, X7 as decimal integers".
 6. **TTL note** (Gates 2–4 only, a short callout). It says the 15 s, 10 s, or 20 s limit is sized for an agent, and that the panel below is for requesting a live instance and inspecting it, not for solving it by hand.
 7. **Try-it panel** (h2 "Try it"). It is Gate1TryIt or InstanceTryIt, and its states are listed below.
-8. **GatePager.** "Previous: Gate N−1: Name" and "Next: Gate N+1: Name" links. Gate 1 has no previous link. Gate 4's next link is "Next: Submit flags on the scoreboard" and goes to `/scoreboard`.
+8. **GatePager** (R11). `<nav aria-label="Gate pages">` with "Previous: Gate N−1: Name" and "Next: Gate N+1: Name" links. Gate 1's previous link is "Previous: Overview" and goes to `/`. Gate 4's next link is "Next: Scoreboard" and goes to `/scoreboard`.
 
 Grid:
 - **≥1024px:**
@@ -703,7 +721,7 @@ The frame is the same for all three gates:
 - **Message area.**
 - **JsonDisclosure.**
 
-The StatusBadge always shows text: "Live", "Expiring" (5 s or less left, the same threshold for all gates), "Expired", "Accepted", or "Rejected" (2.33).
+The StatusBadge always shows text: "Live", "Expiring", "Expired", "Accepted", or "Rejected" (2.33). "Expiring" applies at or below the gate's threshold in src/lib/gates.ts: 5 s for Gates 2 and 4 and 3 s for Gate 3 (R1). The countdown states are in "Countdown" under Accessibility Mechanisms (R18).
 
 | State | Body | Primary | Secondary | Message area |
 |---|---|---|---|---|
@@ -712,35 +730,37 @@ The StatusBadge always shows text: "Live", "Expiring" (5 s or less left, the sam
 | live | instance fields and labeled inputs | "Submit" | "Request new instance" | Gate 3 parse error, if any |
 | loading, op submit | instance fields; inputs are `readOnly` | "Submitting…", disabled | disabled | none |
 | expired | instance fields stay visible for inspection; inputs are `readOnly` | "Request new instance" | none; Submit disabled | "This instance expired. Request a new one to try again." |
-| server-error, op request | none: no instance, countdown, or Submit (2.11) | "Retry", disabled and showing "Retry in N s" until `retryAt` | none | label "Rate limited" for 429, otherwise "Request failed", plus the server message verbatim |
+| server-error, op request | none: no instance, countdown, or Submit (2.11) | "Try again", disabled and showing "Try again in N s" until `retryAt` (R12) | none | label "Rate limited (HTTP 429)" for 429, otherwise "Request failed", plus the server message verbatim |
 | server-error, op submit | instance fields and inputs | "Submit", disabled until `retryAt` and while expired | "Request new instance" | as above |
-| network-error, op request or submit | as for server-error with the same op | "Retry" repeats the same op; for submit it is disabled once expired | "Request new instance" for submit | "The request didn't reach the server. Check your connection and retry." |
+| network-error, op request or submit | as for server-error with the same op | "Try again" repeats the same op; for submit it is disabled once expired | "Request new instance" for submit | "The request didn't reach the server. Check your connection and try again." |
 | accepted | inputs are hidden | "Request new instance" | none | label "Accepted", the server message verbatim, the flag in mono with a CopyButton, then the inline FlagForm pre-filled with the flag |
 | rejected | instance fields and inputs, kept as entered | "Submit" while the instance hasn't expired | "Request new instance" | label "Rejected" and the server message verbatim |
 
-Gate-specific body (all counts are derived from the response, 2.9):
+Gate-specific body (all counts are derived from the response, 2.9 and A15; constants that the response lacks come from src/lib/gates.ts):
 - **Gate 2:**
-  - "Sequence" as an `<ol>` from X1 to X5 (`sequence[i]`, mono).
-  - "Multiplier" (`multiplier`, verbatim string).
+  - "Truncated outputs" as an `<ol>` labeled X1 to X`sequence.length` (`sequence[i]`, mono; 4 at c6d13ea), with the line "Each value is X >> 16, the top 48 bits of the state. The low 16 bits are hidden."
+  - "Multiplier A" (`multiplier`, verbatim string).
+  - "Increment C" (`GATE2_INCREMENT` from gates.ts, because the response doesn't include it).
   - "Modulus" (`modulus`).
-  - Three labeled inputs "X6", "X7", and "X8", with the description "Decimal integer". They sit in a 3-column grid at ≥640px and stack at 360px.
+  - Three labeled inputs numbered from `sequence.length + 1`, which gives "X5", "X6", and "X7" at c6d13ea, in a fieldset with the legend "Next three outputs" and the Copy section's hint. They sit in a 3-column grid at ≥640px and stack at 360px.
 - **Gate 3:**
   - The line "`variablesCount` variables, `clausesCount` clauses".
   - "Clause preview": the first 5 clauses as `(a ∨ b ∨ c)` in mono, followed by "and `clauses.length − 5` more".
-  - A labeled textarea "Assignment" with the description "JSON array: 60 booleans, or signed literals such as [1, -2, 3]". The 60 in that text comes from `variablesCount`.
+  - A labeled textarea "Assignment (JSON array)" with the Copy section's hint. The variable count in that hint comes from `variablesCount`, never from a literal.
 - **Gate 4:**
-  - "Bytecode" (`bytecodeHex`) in a mono block with `overflow-wrap: anywhere`.
-  - "Opcodes" as a 2-column table (Opcode, Meaning) built from `Object.entries(vmSpec.opcodes)`.
-  - A labeled input "Key" with the description "16 hex characters (8 bytes)".
+  - "Bytecode" (`bytecodeHex`) in a mono block with `overflow-wrap: anywhere`, and its byte count.
+  - "Opcodes" as a 2-column table (Opcode, Meaning) built from `Object.entries(vmSpec.opcodes)`, 9 rows at c6d13ea.
+  - A labeled input "Key (hex)" with the Copy section's hint.
 
-**JsonDisclosure.** `<details><summary>View full response</summary>` contains a `<pre>` with `formatResponseJson(instance.data)`. In that format, arrays made only of primitives are written on one line, so 255 clauses take 255 lines instead of 1,275. The `<pre>` has `max-height: 24rem`, `overflow: auto`, `tabIndex={0}`, and `aria-label="Full response JSON"`. After submission, a second disclosure shows the submit response.
+**JsonDisclosure.** `<details><summary>View full response</summary>` contains a `<pre>` with `formatResponseJson(instance.data)`. In that format, arrays made only of primitives are written on one line, so 512 clauses take 512 lines instead of 2,560. This is also the only place the stale response `description` strings appear (A3). The `<pre>` has `max-height: 24rem`, `overflow: auto`, `tabIndex={0}`, and `aria-label="Full response JSON"`. After submission, a second disclosure shows the submit response.
 
 #### Try-it panel: Gate 1 (Gate1TryIt)
 
 - **Body:**
-  - A labeled textarea "Prompt" (4 rows) with the description "Sent as {"prompt": "…"} to POST /api/gate1/chat. The server reads the first 4,000 characters."
+  - A rules note above the field, with the Copy section's text. It lists the four checks the server applies in order (length, blocked words, framing word, proof of work) and says a prompt typed by hand passes the proof-of-work check about 1 time in 65,536 (2.8).
+  - A labeled textarea "Prompt" (4 rows) with the Copy section's hint and a live character count of the trimmed prompt ("{n} of 50 to 500 characters"). The count is information only and doesn't block sending, because the server's message for a wrong length is the authority (A12).
   - A required-field error below it (2.15).
-- **Action:** the primary button "Send prompt". Gate 1 has no secondary button.
+- **Action:** the primary button "Send prompt". Gate 1 has no secondary button. There is no nonce helper (A6). See Open questions.
 
 The response area is a box under the action row:
 
@@ -748,10 +768,10 @@ The response area is a box under the action row:
 |---|---|---|
 | idle | none | "The response appears here." |
 | loading | none | "Sending…" on the button, which is disabled; the textarea stays editable but no second request starts (2.12) |
-| blocked | "Blocked by filter" | `response` verbatim |
-| answered | "Answered, no flag" | `response` verbatim |
+| blocked | "Blocked by filter" | "No flag was returned." and `response` verbatim. This covers every `allowed: false` reply, including the length check and a failed proof-of-work check (2.14) |
+| answered | "Answered, no flag" | `response` verbatim. c6d13ea never produces this state, and it stays as a safe default |
 | flag-returned | "Flag returned" | `response` verbatim, the flag in mono with a CopyButton, then the inline FlagForm |
-| server-error | "Rate limited" for 429, otherwise "Request failed" | the server message verbatim; "Send prompt" stays disabled until `retryAt` and shows "Send prompt (N s)" |
+| server-error | "Rate limited (HTTP 429)" for 429, otherwise "Request failed" | the server message verbatim; "Send prompt" stays disabled until `retryAt` and shows "Send prompt (N s)" (R12) |
 | network-error | "Not sent" | "The request didn't reach the server. Check your connection and send again." |
 
 JsonDisclosure shows the last chat response when there is one.
@@ -760,7 +780,7 @@ JsonDisclosure shows the last chat response when there is one.
 
 Content blocks in order:
 1. h1 "Scoreboard".
-2. **Memory note** (one sentence, A9). "Standings are kept in server memory, so they reset when the server restarts, and each server instance keeps its own list: a flag you just submitted may not appear here." The copy part owns the wording.
+2. **Memory note** (one sentence, A9). "Standings are kept in server memory, so they reset when the server restarts, and each server instance keeps its own list: a flag you just submitted may not appear here." The Copy section owns the wording.
 3. **Submit a flag** card (h2) containing FlagForm with `variant="page"`.
 4. **Standings** (h2) with an action row containing:
    - "Refresh", a secondary button that shows "Refreshing…" and is disabled while loading.
@@ -777,10 +797,10 @@ StandingsTable is a `<table>` with `<caption class="sr-only">Standings, ordered 
 | Rank | `#1`, from the index in the returned order (3.11) | shown | shown |
 | Agent | `agentName` in mono, `overflow-wrap: anywhere` | shown | shown, with the proof status as a second line under the name |
 | Score | `score.toLocaleString("en-US")`, tabular figures | shown | shown |
-| Gates solved | solved gate numbers in ascending order, as text: "1, 2, 4", or "None" | shown | shown |
+| Gates solved (R7) | four chips G1 to G4. Each chip shows an icon (`CircleCheck` solved, `Circle` not solved) and the visible text "G1", with the accessible name "Gate N: solved" or "Gate N: not solved" | shown | shown; the chips may wrap to a 2×2 grid |
 | Proof | "Complete" (the entry has `proofBadge`) or "In progress" | shown | hidden (`display: none`; the second line under the name replaces it) |
 
-360px fit: rank is 3 characters, about 26 + 16 = 42px. Score is "5,250", about 42 + 16 = 58px. "1, 2, 3, 4" is 10 mono characters, about 84 + 16 = 100px. That leaves 328 − 200 = 128px for Agent, which is about 13 mono characters per line, so a 24-character handle wraps onto two lines. The table is `w-full`, and its wrapper has `overflow-x: auto` only as a safety net.
+360px fit: rank is 3 characters, about 26 + 16 = 42px. Score is at most "8,500", about 42 + 16 = 58px. The four chips in a 2×2 grid take about 100px. That leaves 328 − 200 = 128px for Agent, which is about 13 mono characters per line, so a 24-character handle wraps onto two lines. The table is `w-full`, and its wrapper has `overflow-x: auto` only as a safety net.
 
 **Empty state** (entries is an empty array after a successful load): "No flags have been accepted since the server last started." followed by a link "Start with Gate 1" to `/gates/1`.
 
@@ -793,10 +813,10 @@ Above the fold at 360 × 780: the h1, the memory note, the flag form card (about
 - **Fields:**
   - "Agent handle", with the description "Letters, digits, _, - and ., up to 24 characters."
   - "Flag", in mono, with the placeholder `HAKU{…}` as a hint only, since the field also has a visible label.
-- **Button:** a primary "Submit flag" that shows "Submitting…" and is disabled while the request runs.
+- **Button:** a primary "Submit flag" that shows "Submitting…" and is busy (R2) while the request runs.
 - **Validation:**
   - An empty handle or flag shows "Required" at that field, and no request is sent (2.15).
-  - A handle that fails `checkHandle` shows the format note and what would be recorded ("This will be recorded as "myagent"."), but it does not block submission (see Issues).
+  - A handle that fails `checkHandle` shows the format note and a preview of the cleaned handle ("This will be recorded as "myagent"."). It warns and does not block submission (R13).
 - **Result block below the form:**
   - **Accepted:** the label "Accepted", the server message verbatim, "Recorded as `<agent.agentName>`" (2.16), and, when `proofBadge` is non-null, "Proof-of-Pwn badge" in mono with a CopyButton.
   - **Rejected:** the label "Rejected" and the server message verbatim.
@@ -812,11 +832,11 @@ Above the fold at 360 × 780: the h1, the memory note, the flag form card (about
 Content blocks in order:
 1. h1 "Docs", with the lead "skill.md is the file agents read to learn the API. It is shown here as formatted text."
 2. **Toolbar:**
-   - CopyButton "Copy skill.md", whose value is the exact file string read on the server (3.12).
-   - The skill.md URL `https://ctf.hakudigital.tech/skill.md` in mono with its own CopyButton.
-   - A link "Open raw file" to `/skill.md`.
-3. **Article:** `<article>` with SkillDoc rendering the Markdown. The file's own headings are shifted so its top heading renders as h2 under the page h1. The renderer, math, and emoji handling are decided by the docs part.
-4. **Error state:** if the file can't be read, an error block "skill.md couldn't be loaded." with a link to `/skill.md` replaces blocks 2 and 3.
+   - CopyButton "Copy skill.md", whose value is the exact file string read on the server at build time (3.12). It is disabled only until hydration (R6, R8).
+   - The production skill.md URL `https://ctf.hakudigital.tech/skill.md` in mono with its own CopyButton.
+   - A link "View raw file" to `/skill.md`.
+3. **Article:** `<article>` with SkillDoc rendering the Markdown. The file's own headings are shifted so its top heading renders as h2 under the page h1. The renderer, math, and emoji handling are in "skill.md Rendering".
+4. **Error state:** if reading the file fails at build time, an error block "skill.md couldn't be loaded." with a link to `/skill.md` replaces blocks 2 and 3. There is no client fetch, so there is no loading state (R6).
 
 Grid: one column at every width, article text at most 75ch, and code blocks as wide as the column, each scrolling horizontally on its own. There is no inner fixed-height scroll box (2.19). Rejected: a sticky table of contents at ≥1024px (YAGNI, and it can be added later). Above the fold at 360 × 780: the h1, the lead, the toolbar, and the start of the file's text.
 
@@ -845,15 +865,15 @@ src/app/not-found.tsx: h1 "Page not found", one sentence, and links to Overview 
 src/app/
   layout.tsx              fonts, metadata, viewport, shell, AppStateProvider
   page.tsx                Overview (server)
-  not-found.tsx           404 (server)              [added, see Issues]
-  icon.svg                site favicon              [replaces favicon.ico; visual part designs it]
+  not-found.tsx           404 (server)              (R15)
+  icon.svg                site favicon              (R15; replaces favicon.ico, see Iconography and brand)
   globals.css             tokens (@theme), base styles
   gates/page.tsx          redirect("/gates/1")
   gates/[gate]/page.tsx   gate page (server)
   scoreboard/page.tsx     metadata + <ScoreboardView/>
-  docs/page.tsx           reads public/skill.md, renders SkillDoc
+  docs/page.tsx           reads public/skill.md at build time, renders SkillDoc (R6)
   console/page.tsx        metadata + <ConsoleView/>
-  api/**                  FROZEN
+  api/**                  FROZEN at c6d13ea
 src/components/
   state/AppStateProvider.tsx, state/Announcer.tsx
   shell/SiteHeader.tsx, shell/PrimaryNav.tsx, shell/SiteFooter.tsx, shell/SoundToggle.tsx, shell/FlagDialog.tsx
@@ -868,13 +888,13 @@ src/components/
 src/lib/
   gates.ts        static gate metadata, URLs
   api.ts          response types, ApiResult, fetch helpers
-  app-state.ts    state types, initial state, pure reducer      [added, see Issues]
+  app-state.ts    state types, initial state, pure reducer with unit tests  (R15)
   console.ts      runConsoleCommand
   validation.ts   checkHandle, cleanHandle, parseGate3Assignment
-  format.ts       formatPoints, formatResponseJson, formatClause  [added, see Issues]
-  markdown.ts     only if the docs part picks an in-house renderer
+  format.ts       formatPoints, formatResponseJson, formatClause  (R15)
+  markdown.ts     in-house Markdown renderer for skill.md
   sound.ts        kept; enabled = false by default
-  challenges.ts, crypto.ts, ratelimit.ts   FROZEN
+  challenges.ts, crypto.ts, ratelimit.ts   FROZEN at c6d13ea
 ```
 
 #### Component inventory
@@ -885,15 +905,15 @@ src/lib/
 |---|---|---|---|---|
 | RootLayout | src/app/layout.tsx | server | `{ children }` | fonts through `next/font`, metadata, viewport without `maximumScale`, shell order, provider |
 | AppStateProvider | src/components/state/AppStateProvider.tsx | client | `{ children }` | holds the reducer state, runs fetches through src/lib/api.ts, runs the ticker, syncs `sounds.enabled`, provides `announce()`; exports `useAppState()` and `useNow()` |
-| Announcer | src/components/state/Announcer.tsx | client | none | a single visually hidden `aria-live="polite"` `aria-atomic="true"` region that shows the latest `announce()` text; clears and resets the text so a repeated message is spoken again |
+| Announcer | src/components/state/Announcer.tsx | client | none | a visually hidden `aria-live="polite"` `aria-atomic="true"` region that shows the latest `announce()` text; clears and resets the text so a repeated message is spoken again. One instance is the last child of `main`, and a second one sits inside FlagDialog (R3, R15) |
 | SiteHeader | src/components/shell/SiteHeader.tsx | server | none | `<header>` holding the wordmark link, FlagDialog, and SoundToggle |
 | PrimaryNav | src/components/shell/PrimaryNav.tsx | client | none | `<nav aria-label="Primary">` with 5 Links and `aria-current` from `usePathname()` |
 | SiteFooter | src/components/shell/SiteFooter.tsx | server | none | attribution and links (3.13) |
-| SoundToggle | src/components/shell/SoundToggle.tsx | client | none | `<button aria-pressed={soundOn} aria-label="Sound effects">`, Volume2 or VolumeX icon, starts off (2.25) |
+| SoundToggle | src/components/shell/SoundToggle.tsx | client | none | `<button aria-pressed={soundOn} aria-label="Sound effects">`, starts `false`; the Volume2 or VolumeX icon and the visible text are `aria-hidden` (2.25, R9) |
 | FlagDialog | src/components/shell/FlagDialog.tsx | client | none | "Submit flag" trigger, native `<dialog>` with FlagForm `variant="dialog"`, focus return |
-| Button | src/components/ui/Button.tsx | server-safe (no hooks) | `variant: "primary" \| "secondary" \| "ghost"`, `size?: "md" \| "sm"`, `busy?: boolean`, plus native button props | the shared control variants (2.3); `busy` sets `aria-disabled` styling and `disabled` |
+| Button | src/components/ui/Button.tsx | server-safe (no hooks) | `variant: "primary" \| "secondary" \| "ghost"`, `size?: "md" \| "sm"`, `busy?: boolean`, plus native button props | the shared control variants (2.3); `busy` sets `aria-disabled="true"` and `data-busy`, keeps focus, and ignores activation; native `disabled` only when the caller passes it (R2) |
 | TextField, TextAreaField | src/components/ui/Field.tsx | client (`useId`) | `label`, `description?`, `error?`, `mono?`, plus input or textarea props | visible `<label htmlFor>`, `aria-describedby` for the description and error, `aria-invalid` (2.30) |
-| CopyButton | src/components/ui/CopyButton.tsx | client | `value: string`, `label: string` (what is copied, e.g. "base URL"), `disabled?` | awaits `navigator.clipboard.writeText`, shows "Copied" or "Copy failed" for 2 s, calls `announce()`; disabled until hydrated (2.17) |
+| CopyButton | src/components/ui/CopyButton.tsx | client | `value: string`, `label: string` (what is copied, e.g. "base URL"), `disabled?` | constant accessible name starting with "Copy"; awaits `navigator.clipboard.writeText` and checks the result; shows "Copied" for 2 s or "Copy failed" for 4 s in an `aria-hidden` span and calls `announce()` once; disabled until hydrated through `useSyncExternalStore` (2.17, R8) |
 | CopyField | src/components/ui/CopyField.tsx | server | `label`, `value`, `display?: ReactNode` | label, mono value, and CopyButton in one row |
 | StatusBadge | src/components/ui/StatusBadge.tsx | server-safe | `tone: "neutral" \| "success" \| "error" \| "warning"`, `children` (text) | a status label shown in text and color (2.33) |
 | StatusMessage | src/components/ui/StatusMessage.tsx | server-safe | `tone`, `label: string`, `children`, `action?: ReactNode` | the message box used for results and errors |
@@ -901,17 +921,17 @@ src/lib/
 | ConnectionDetails | src/components/overview/ConnectionDetails.tsx | server | none | three CopyField rows |
 | StartSteps | src/components/overview/StartSteps.tsx | server | none | the three-step `<ol>` |
 | GateProgression | src/components/overview/GateProgression.tsx | server | `gates: readonly GateMeta[]` | ordered gate cards with links |
-| GateStepper | src/components/gates/GateStepper.tsx | server | `current: GateNumber` | `<nav aria-label="Gate pages">` with `aria-current` |
+| GateStepper | src/components/gates/GateStepper.tsx | server | `current: GateNumber` | `<nav aria-label="Gates">` with `aria-current` (R3) |
 | GateReference | src/components/gates/GateReference.tsx | server | `gate: GateMeta` | description, endpoints with CopyButton, payload table, TTL note |
-| GatePager | src/components/gates/GatePager.tsx | server | `current: GateNumber` | previous and next links |
+| GatePager | src/components/gates/GatePager.tsx | server | `current: GateNumber` | `<nav aria-label="Gate pages">` with previous and next links; "Previous: Overview" on Gate 1, "Next: Scoreboard" on Gate 4 (R3, R11) |
 | Gate1TryIt | src/components/gates/Gate1TryIt.tsx | client | none | the Gate 1 prompt form and response states |
 | InstanceTryIt | src/components/gates/InstanceTryIt.tsx | client | `gate: 2 \| 3 \| 4` | the shared panel frame, states, and actions; renders the matching GateNInstance; announces expiry once |
 | Gate2Instance, Gate3Instance, Gate4Instance | src/components/gates/Gate{2,3,4}Instance.tsx | client | `{ data, inputs, onInput, readOnly, fieldError }`, typed per gate | gate-specific fields and labeled inputs |
-| Countdown | src/components/gates/Countdown.tsx | client | `expiresAt: number`, `expired: boolean` | "N s left" from `useNow()`; this is the only per-second rerender |
+| Countdown | src/components/gates/Countdown.tsx | client | `expiresAt: number`, `expired: boolean`, `expiringAt: number` (the gate's threshold from gates.ts) | the three states in R18 from `useNow()`; this is the only per-second rerender |
 | FlagForm | src/components/flag/FlagForm.tsx | client | `variant: "page" \| "inline" \| "dialog"`, `headingId?: string` | shared handle and flag fields, validation, result block, Dismiss |
 | ScoreboardView | src/components/scoreboard/ScoreboardView.tsx | client | none | loads on mount, renders the memory note, form card, refresh, messages, and table |
 | StandingsTable | src/components/scoreboard/StandingsTable.tsx | client (imported by a client view) | `entries: readonly LeaderboardEntry[]`, `busy: boolean` | the table described above |
-| SkillDoc | src/components/docs/SkillDoc.tsx | server | `markdown: string` | formatted rendering (docs part) |
+| SkillDoc | src/components/docs/SkillDoc.tsx | server | `markdown: string` | formatted rendering through src/lib/markdown.ts |
 | ConsoleView | src/components/console/ConsoleView.tsx | client | none | log, input, `runConsole`, loads the scoreboard once on mount |
 
 The gate page composes: `<GateStepper current={n}/>`, the heading, `<GateReference gate={meta}/>`, `{n === 1 ? <Gate1TryIt/> : <InstanceTryIt gate={n}/>}`, and `<GatePager current={n}/>`.
@@ -977,7 +997,8 @@ interface ChallengeBase<G extends 2 | 3 | 4> {
 export interface Gate2Challenge extends ChallengeBase<2> {
   multiplier: string;          // "6364136223846793005 (Knuth 64-bit)"
   modulus: string;             // "18446744073709551616 (2^64)"
-  sequence: string[];          // 5 decimal strings
+  sequence: string[];          // 4 decimal strings at c6d13ea, each X >> 16; C is not in the response
+  // description at c6d13ea is stale ("5 consecutive numbers"); the UI does not display it outside JsonDisclosure
   payloadSchema: { sessionToken: string; predictions: string[] };
 }
 export interface Gate3Challenge extends ChallengeBase<3> {
@@ -1019,14 +1040,16 @@ async function request<T>(
 ): Promise<ApiResult<T>>;
 ```
 
-The classification steps run in this order:
-1. **Network error.** `fetch` rejects, either a `TypeError` for offline or DNS problems, or the `TimeoutError` from `AbortSignal.timeout(15000)`, which is passed as `init.signal`. The result is `{ kind: "network-error" }`. The 15 s timeout keeps a hung request from leaving a button busy forever.
-2. **Parse.** `await res.json()` runs inside a try block. If it fails, for example on an HTML 500 or 504 page, the result is server-error with `message = "The server sent an unexpected response (HTTP <status>)."` and `body: null`.
-3. **Domain result.** If `guard(body)` passes and either `res.ok` or `acceptNonOk` is true, the result is `{ kind: "ok", status, data: body }`. `acceptNonOk` is true only for the gate submit endpoints and `POST /api/scoreboard`, because their 400 and 403 bodies `{ success: false, message }` are rejections that the visitor should see as "Rejected", not as failures.
-4. **Error body.** Anything else is server-error with these fields:
-   - `message`: `body.message` if it is a string, else `body.error` if it is a string (the Gate 1 400 has only `error`), else the fallback from step 2.
-   - `retryAfterSec`: computed only when `status === 429`. It is the last `(\d+)\s*s\b` match in the message, which covers both "Retry in 12s." and "Anti-bruteforce sleep for 12s.". Otherwise it is `null`.
-   - `body`: kept for JsonDisclosure.
+The classification is one ordered rule list (R12). The first rule that matches decides the result:
+
+0. **Network error.** `fetch` rejects, either a `TypeError` for offline or DNS problems, or the `TimeoutError` from `AbortSignal.timeout(15000)`, which is passed as `init.signal`. The result is `{ kind: "network-error" }`. The 15 s timeout keeps a hung request from leaving a button busy forever. This happens before any HTTP status exists.
+1. **HTTP 429** is server-error, whatever the body. `retryAfterSec` is the last `(\d+)\s*s\b` match in `body.message`, which covers both "Retry in 12s." and "Anti-bruteforce sleep for 12s.". If nothing matches, it is `null`.
+2. **A boolean `success`** (the gate submit endpoints and `POST /api/scoreboard`, at 200, 400, or 403) is ok. The panel shows "Accepted" when it is true and "Rejected" when it is false. For the scoreboard, `success: true` also needs `agent.agentName` as a string.
+3. **Gate 1's boolean `allowed`** with a string `response` is ok. The panel shows "Flag returned" when `allowed` is true and `flag` is a string, "Answered, no flag" when `allowed` is true without a flag, and "Blocked by filter" when `allowed` is false.
+4. **A challenge response with a non-empty string `sessionToken`** and its gate field (Gate 2 `sequence` array, Gate 3 `clauses` array, Gate 4 `bytecodeHex` string) is ok and becomes a live instance. The scoreboard list (`leaderboard` array) is ok at this step too.
+5. **Anything else** is server-error, including a body that isn't JSON, such as an HTML 500 or 504 page.
+
+Error text for server-error comes from `body.message` if it is a string, then `body.error` if it is a string (the Gate 1 400 has only `error`), then the fallback "The server sent an unexpected response (HTTP <status>).". `body` is kept for JsonDisclosure, or `null` when it wasn't JSON. Every rule is checked in the request helper that knows which endpoint it called, so rule 3 runs only for Gate 1 and rule 4 only for challenge and scoreboard GETs.
 
 Guards check only the fields the UI reads:
 
@@ -1042,7 +1065,7 @@ Guards check only the fields the UI reads:
 
 **What Gate 1 classifies as ok.** `{ allowed: false, … }` is an ok result with HTTP 200. It is a domain outcome, and the panel shows it as "blocked". It is not an error.
 
-**429 display.** The server message is shown verbatim under the label "Rate limited" (A12). The provider stores `retryAt = Date.now() + retryAfterSec * 1000`. The control that would repeat the request is disabled and labelled with the remaining seconds from `useNow()`, for example "Retry in 9 s", and it goes back to its normal label at 0. Nothing retries automatically (3.15, A13).
+**429 display.** The server message is shown verbatim under the label "Rate limited (HTTP 429)" (A12, R12). The provider stores `retryAt = Date.now() + retryAfterSec * 1000`. The control that would repeat the request is disabled and labelled with the remaining seconds from `useNow()`, for example "Try again in 9 s", and it goes back to "Try again" at 0. Nothing retries automatically (3.15, A13).
 
 Exported helpers:
 - `getScoreboard()`: GET.
@@ -1157,10 +1180,10 @@ The Overview, gate, and docs views make no API calls on load. There is no pollin
 #### Ticker
 
 There is one ticker in AppStateProvider, `useNow()`:
-- `now` lives in a separate `NowContext`, so only Countdown and the "Retry in N s" labels rerender each tick. The main context value is memoized on `state`.
+- `now` lives in a separate `NowContext`, so only Countdown and the "Try again in N s" labels rerender each tick. The main context value is memoized on `state`.
 - A single `setInterval(250)` runs only while at least one instance is not expired, or at least one `retryAt` is in the future. The effect depends on that boolean, so the interval stops when nothing is counting.
 - On each tick, for each gate with `instance && !instance.expired && now >= instance.expiresAt`, it dispatches `{ type: "instance/expired", gate }`. That event sets `instance.expired = true`, and moves `status` from `live` to `expired`. Other statuses keep their message, and Submit turns off through `instance.expired`.
-- Countdown shows `Math.max(0, Math.ceil((expiresAt - now) / 1000))` as "N s left", and "Expiring" applies at 5 or below.
+- Countdown computes `n = Math.max(0, Math.ceil((expiresAt - now) / 1000))` and shows the R18 states: "Expires in {n} s" while live, the "Expiring" badge plus the warning color and icon at or below the gate's `expiringAtSeconds` (5 s for Gates 2 and 4, 3 s for Gate 3, R1), and the "Expired" badge plus the expired message at 0.
 - `expiresAt` is absolute, so the countdown is correct after navigating away and back (3.14).
 - InstanceTryIt keeps a ref with the last `instance.expired` value it rendered, keyed by `sessionToken`. When the value turns true while the component is mounted, it calls `announce("Gate N instance expired. Request a new instance to try again.")` once. If the component mounts with an instance that has already expired, it records the value without announcing. So expiry is announced once, and only on the gate's own page (2.13).
 
@@ -1178,7 +1201,7 @@ export function runConsoleCommand(input: string, context: ConsoleContext): Conso
 
 `command` is `input.trim()` as typed and is echoed as `$ <command>`. Parsing uses `const [root, arg] = input.trim().toLowerCase().split(/\s+/)`, so any letter case works (3.10), and extra spaces no longer break `solve  2`.
 
-| Input root | Output (copy part may reword; content must stay equivalent) | Tone |
+| Input root | Output (Copy section may reword; content must stay equivalent) | Tone |
 |---|---|---|
 | `help` | `Commands:` then one line each: `help` "List commands", `gates` "List the gates with points, endpoint, and TTL", `solve <1-4>` "Show how to approach a gate", `leaderboard` "Show the standings as last loaded", `clear` "Clear the console" | normal |
 | `gates` | one line per gate from `context.gates`: `Gate N  <name>  <points> pts  <first endpoint method and path>` followed by `  TTL <ttl> s` for gates with a TTL. Columns are padded with `padEnd` | normal |
@@ -1188,7 +1211,7 @@ export function runConsoleCommand(input: string, context: ConsoleContext): Conso
 | `clear` | `{ kind: "clear" }` | |
 | anything else | `Unknown command '<command>'. Type help to list commands.` | error |
 
-Points use `formatPoints` (`toLocaleString("en-US")`), giving 500, 1,000, 1,250, and 1,500 (3.16). The function is pure: it uses no `Date`, no randomness, and no I/O.
+Points use `formatPoints` (`toLocaleString("en-US")`), giving 1,000, 2,000, 2,500, and 3,000 (3.16). Gate names come from `GateMeta.name` without a difficulty suffix (A14), so the `padEnd(18)` column holds the longest name, "Entropy Fracture". The function is pure: it uses no `Date`, no randomness, and no I/O.
 
 #### src/lib/validation.ts
 
@@ -1227,6 +1250,7 @@ export interface GateMeta {
   topic: string;               // short task name: "Prompt filter evasion", "LCG prediction", "3-SAT", "Stack VM bytecode"
   points: number;
   ttlSeconds: number | null;   // null = no instance, no time limit
+  expiringAtSeconds: number | null; // R1: 5 for Gates 2 and 4, 3 for Gate 3, null for Gate 1
   summary: string;             // one sentence for the Overview card
   description: string;         // gate page paragraph
   endpoints: readonly Endpoint[];
@@ -1238,24 +1262,27 @@ export function getGate(param: string): GateMeta | undefined;   // only "1".."4"
 export const SCOREBOARD_ENDPOINTS: readonly Endpoint[];          // GET and POST /api/scoreboard
 export const SKILL_ENDPOINT: Endpoint;                           // GET /api/skill
 export function absoluteUrl(path: string): string;               // BASE_URL + path, used by endpoint CopyButtons
+export const DIFFICULTY = "Hell";                                // A14: shown once as "Difficulty: Hell"
+export const GATE2_INCREMENT = "1442695040888963407";            // C; skill.md gives it, the response does not
+export const GATE1_RULES: readonly string[];                     // the four checks, in server order, for the gate page and try-it note
 ```
 
-Values (3.16; description and summary strings are owned by the copy part):
+Values (3.16; description and summary strings are owned by the Copy section):
 
 | # | name | points | ttlSeconds | endpoints | requestFields |
 |---|---|---|---|---|---|
-| 1 | Neural Sentry | 500 | null | POST /api/gate1/chat | `prompt` string, "first 4,000 characters are read" |
-| 2 | Entropy Fracture | 1000 | 15 | GET /api/gate2/challenge, POST /api/gate2/submit | `sessionToken` string; `predictions` array of 3 strings: X6, X7, X8 as decimal integers |
-| 3 | Logic Maze | 1250 | 10 | GET /api/gate3/challenge, POST /api/gate3/submit | `sessionToken` string; `assignment` array of 60 booleans, or of signed literals such as [1, -2, 3] |
-| 4 | Bytecode Vault | 1500 | 20 | GET /api/gate4/challenge, POST /api/gate4/submit | `sessionToken` string; `keyHex` string of 16 hex characters (8 bytes) |
+| 1 | Neural Sentry | 1000 | null | POST /api/gate1/chat | `prompt` string, 50 to 500 characters after trimming; must pass the four checks in A3 |
+| 2 | Entropy Fracture | 2000 | 15 | GET /api/gate2/challenge, POST /api/gate2/submit | `sessionToken` string; `predictions` array of 3 strings: X5, X6, X7 as decimal integers |
+| 3 | Logic Maze | 2500 | 10 | GET /api/gate3/challenge, POST /api/gate3/submit | `sessionToken` string; `assignment` array of 120 booleans in variable order (signed literals are read by position when the array has 120 or 121 entries, A3) |
+| 4 | Bytecode Vault | 3000 | 20 | GET /api/gate4/challenge, POST /api/gate4/submit | `sessionToken` string; `keyHex` string of 16 hex characters (8 bytes), any case, optional lowercase `0x` |
 
-Console hints keep the content of the current `solve` outputs:
-1. Gate 1: academic or RFC framing, or an encoded request, without the blocked words.
-2. Gate 2: modulus 2^64, multiplier given; compute C = (X2 − A·X1) mod 2^64, then X6–X8.
-3. Gate 3: load the 255 clauses into a SAT solver such as Z3 or CaDiCaL and submit the assignment.
-4. Gate 4: disassemble the 8 stages `((key[i] ^ xor) + add) == target`, then invert the arithmetic.
+Console hints carry these facts for c6d13ea. The wording is in "Console copy":
+1. Gate 1: use a framing word, avoid the blocked words, then add a nonce and search until SHA-256 of the trimmed prompt starts with 0000.
+2. Gate 2: A, C, and 2^64 are given and each output is X >> 16; recover the 16 hidden low bits (65,536 candidates, or Z3), then compute X5 to X7.
+3. Gate 3: load the 512 clauses into a SAT solver such as Z3 or CaDiCaL and submit 120 booleans.
+4. Gate 4: 8 rounds of XOR with a key byte, add, rotate left, and compare, then a sum check and an XOR check; invert each round or run it symbolically.
 
-A test asserts that `GATES` matches the API: the points match `GATE_POINTS` in the scoreboard route, and the TTLs match `generateGateNChallenge().ttl` from src/lib/challenges.ts, which the test imports read-only.
+A test (K09) asserts that `GATES` matches the API at c6d13ea (A15): the points match `GATE_POINTS` in the scoreboard route, the TTLs match `generateGateNChallenge().ttl` from src/lib/challenges.ts, which the test imports read-only, Gate 3's counts match `generateGate3Challenge()`, Gate 4's opcode count matches the route's `vmSpec`, and `GATE2_INCREMENT` appears in public/skill.md.
 
 #### src/lib/format.ts
 
@@ -1269,7 +1296,7 @@ A test asserts that `GATES` matches the API: the points match `GATE_POINTS` in t
 | Current block | Moves to | Deleted |
 |---|---|---|
 | `"use client"`, the whole-page client component | split into server pages and client islands | the single `Home` component |
-| `canvas-confetti` import and the `confetti(...)` call | none | deleted, along with `canvas-confetti` and `@types/canvas-confetti` in package.json (2.26; the motion part may add a result-area effect in CSS) |
+| `canvas-confetti` import and the `confetti(...)` call | none | deleted, along with `canvas-confetti` and `@types/canvas-confetti` in package.json (2.26; the Motion section may add a result-area effect in CSS) |
 | lucide imports | the components that use them; `Clock` and `ExternalLink` aren't used anywhere | `Cpu` as a gate icon (it was also the brand mark) |
 | `interface LeaderboardEntry` | src/lib/api.ts | |
 | the 30 `useState` hooks | `AppState` in src/lib/app-state.ts, held by AppStateProvider | all `any` state types |
@@ -1307,26 +1334,28 @@ Render skill.md with a small in-house parser in `src/lib/markdown.ts` that retur
 
 #### Constructs in public/skill.md
 
-Surveyed on the current file: 3,081 bytes, UTF-8 without BOM, LF line endings. The table lists every construct the parser must handle. Line numbers are 1-based.
+Surveyed on the file as committed in c6d13ea: 3,928 bytes, 88 lines, UTF-8 without BOM, LF line endings. The table lists every construct the parser must handle. Line numbers are 1-based.
 
 | Construct | Where | Notes |
 |---|---|---|
-| ATX heading `#` | line 1 | Contains an em dash (U+2014). |
-| ATX heading `##` with leading emoji | line 9 (U+1F3AF), line 73 (U+1F3C6) | Emoji followed by one space. |
-| ATX heading `###` | lines 13, 22, 37, 50 | Gate headings, for example "Gate 2: ENTROPY FRACTURE (1,000 pts)". |
-| Paragraph | lines 3, 5, 11, 75, 85 | Each is one line in this file. The parser still joins consecutive lines with a space. |
-| Bold `**…**` | lines 3, 14 to 63, 85 | Inside paragraphs and list items. |
-| Inline code | throughout | Includes `https://ctf.hakudigital.tech`, `http://localhost:3000`, `HAKU{...}`, `<TOKEN>`. |
-| Paragraph that is only inline code | line 77 | `POST /api/scoreboard`. |
-| Thematic break `---` | lines 7, 71 | |
-| Bullet list, `* ` marker | lines 14 to 63 | Top level at indent 0. |
-| Nested bullet list, 2-space indent | lines 25, 40, 53, 55 to 62 | One level of nesting only. |
-| Fenced code block inside a list item, info string `json`, indented 2 | lines 17, 30, 42, 64 | Fence directly follows the item's first line with no blank line. |
-| Comment inside a json fence | line 45 | `// or signed literals [1, -2, 3, ...]`, kept verbatim. The block is not valid JSON, so no JSON parsing or highlighting. |
-| Top-level fenced code block, `json` | lines 78 to 83 | |
+| ATX heading `#` | line 1 | Contains an em dash (U+2014) and ends "(Hell Edition)". |
+| ATX heading `##` with leading emoji | line 9 (U+1F3AF), line 76 (U+1F3C6) | Emoji followed by one space. |
+| ATX heading `###` | lines 13, 22, 38, 51 | Gate headings, for example "Gate 2: ENTROPY FRACTURE (2,000 pts)". |
+| Paragraph | lines 3, 5, 11, 78, 88 | Each is one line in this file. The parser still joins consecutive lines with a space. |
+| Bold `**…**` | lines 3, 14 to 66, 88 | Inside paragraphs and list items. |
+| Inline code | throughout | Includes `https://ctf.hakudigital.tech`, `http://localhost:3000`, `HAKU{...}`, `<TOKEN>`, `SHA-256(prompt).startsWith("0000")`. |
+| Paragraph that is only inline code | line 80 | `POST /api/scoreboard`. |
+| Thematic break `---` | lines 7, 74 | |
+| Bullet list, `* ` marker | lines 14 to 66 | Top level at indent 0. |
+| Nested bullet list, 2-space indent | lines 25, 41, 54, 56 to 64 | One level of nesting only. Lines 56 to 64 are the 9 opcodes. |
+| Fenced code block inside a list item, info string `json`, indented 2 | lines 17, 31, 43, 67 | Fence directly follows the item's first line with no blank line. |
+| Comment inside a json fence | line 46 | `// or signed literals [1, -2, 3, ...]`, kept verbatim. The block is not valid JSON, so no JSON parsing or highlighting. |
+| Top-level fenced code block, `json` | lines 81 to 86 | |
 | Display math `$$…$$` as a list-item continuation line | line 27 | `X_{n+1} = (A \cdot X_n + C) \pmod{2^{64}}` |
-| Inline math `$…$` in a continuation paragraph | line 28 | `A = 6364136223846793005` |
-| Intraword underscores outside code | lines 55 to 62 | `PUSH_KEY_BYTE` and similar. Never treated as emphasis. |
+| Inline math `$…$` in a nested list item | line 25 | `X_n \gg 16` |
+| Inline math `$…$` in a continuation paragraph, twice on one line | line 28 | `A = 6364136223846793005` and `C = 1442695040888963407` |
+| Inline math `$…$` in a list item | line 49 | `1.3 \times 10^{36}` |
+| Intraword underscores outside code | lines 56 to 64 | `PUSH_KEY_BYTE` and similar. Never treated as emphasis. |
 
 Absent from the file, so not supported: Markdown links, images, tables, raw HTML, ordered lists, block quotes, `_` or single-`*` emphasis, setext headings, and indented code.
 
@@ -1359,7 +1388,7 @@ export function texToSpeech(tex: string): string | null;
 
 Block rules, applied line by line after normalizing `\r\n` to `\n`:
 
-1. A fence opens on `^( *)```(\w*)\s*$`. Content runs to the next line matching `^ *```\s*$`. Each content line loses up to the opening fence's indent in leading spaces. The value is otherwise kept byte for byte, including the comment on line 45.
+1. A fence opens on `^( *)```(\w*)\s*$`. Content runs to the next line matching `^ *```\s*$`. Each content line loses up to the opening fence's indent in leading spaces. The value is otherwise kept byte for byte, including the comment on line 46.
 2. `^(#{1,3}) (.+)$` is a heading. Its level is the Markdown level plus one, so `#` becomes h2, `##` h3, and `###` h4, because the Docs page owns the h1.
 3. `^---\s*$` is a rule.
 4. `^( *)\* (.*)$` is a list item. The nesting level is the marker's indent divided by 2. Lines indented at least marker indent + 2 that follow the item belong to it, and the parser runs these block rules recursively on them with that indent removed. A fence or a `$$` line can interrupt the item's first paragraph.
@@ -1395,28 +1424,30 @@ The three gate request examples and the scoreboard example appear inside their l
 
 | Heading | Element | id |
 |---|---|---|
-| AGENTGATE CTF — Autonomous AI Battleground Specification | h2 | `agentgate-ctf-autonomous-ai-battleground-specification` |
+| AGENTGATE CTF — Autonomous AI Battleground Specification (Hell Edition) | h2 | `agentgate-ctf-autonomous-ai-battleground-specification-hell-edition` |
 | Protocol Overview | h3 | `protocol-overview` |
-| Gate 1: NEURAL SENTRY (500 pts) | h4 | `gate-1-neural-sentry-500-pts` |
-| Gate 2: ENTROPY FRACTURE (1,000 pts) | h4 | `gate-2-entropy-fracture-1000-pts` |
-| Gate 3: LOGIC MAZE (1,250 pts) | h4 | `gate-3-logic-maze-1250-pts` |
-| Gate 4: BYTECODE VAULT (1,500 pts) | h4 | `gate-4-bytecode-vault-1500-pts` |
+| Gate 1: NEURAL SENTRY (1,000 pts) | h4 | `gate-1-neural-sentry-1000-pts` |
+| Gate 2: ENTROPY FRACTURE (2,000 pts) | h4 | `gate-2-entropy-fracture-2000-pts` |
+| Gate 3: LOGIC MAZE (2,500 pts) | h4 | `gate-3-logic-maze-2500-pts` |
+| Gate 4: BYTECODE VAULT (3,000 pts) | h4 | `gate-4-bytecode-vault-3000-pts` |
 | Submitting Flags to Scoreboard | h3 | `submitting-flags-to-scoreboard` |
 
-Each heading's text is wrapped in a plain `<a href="#id">` (not next/link), so `/docs#gate-3-logic-maze-1250-pts` can be linked and the browser handles the fragment. The anchor uses the heading color and shows an underline on hover and focus-visible. Headings get `scroll-margin-top` equal to the header height only if the structure part makes the header sticky. Gate pages may link to their section with these ids.
+Each heading's text is wrapped in a plain `<a href="#id">` (not next/link), so `/docs#gate-3-logic-maze-2500-pts` can be linked and the browser handles the fragment. The anchor uses the heading color and shows an underline on hover and focus-visible. Nothing in the shell is sticky (R3), so headings need no `scroll-margin-top`. Gate pages may link to their section with these ids.
 
 #### Math
 
-Typeset with HTML `<var>`, `<sub>`, and `<sup>` in the monospace face, plus a spoken text alternative. KaTeX is not added: it is a large dependency with its own CSS and fonts, for two formulas in a frozen file.
+Typeset with HTML `<var>`, `<sub>`, and `<sup>` in the monospace face, plus a spoken text alternative. KaTeX is not added: it is a large dependency with its own CSS and fonts, for five short expressions in a frozen file.
 
-`texToNodes` supports this TeX subset: single Latin letters (rendered as `<var>`), digits, `+ - = ( )`, spaces, `_x` and `_{…}` (sub), `^x` and `^{…}` (sup), `\cdot` (·, U+00B7), and `\pmod{m}` (rendered " mod m"). Any other command makes it return `null`, and the renderer falls back to `<code>` containing the raw TeX, which still meets 2.19 as a formatted code expression.
+`texToNodes` supports this TeX subset: single Latin letters (rendered as `<var>`), digits, `+ - = ( )`, spaces, `_x` and `_{…}` (sub), `^x` and `^{…}` (sup), `\cdot` (·, U+00B7), `\times` (×, U+00D7), `\gg` (≫, U+226B), a decimal point, and `\pmod{m}` (rendered " mod m"). `\times` and `\gg` were added for the c6d13ea file. Any other command makes it return `null`, and the renderer falls back to `<code>` containing the raw TeX, which still meets 2.19 as a formatted code expression.
 
 Rendered results:
 
 - Display, line 27: <var>X</var><sub><var>n</var>+1</sub> = (<var>A</var> · <var>X</var><sub><var>n</var></sub> + <var>C</var>) mod 2<sup>64</sup>
   - Markup: `<p class="math-display"><span aria-hidden="true">…typeset…</span><span class="sr-only">X sub n+1 = (A times X sub n + C) mod 2 to the power 64</span></p>`.
-  - `texToSpeech` builds the spoken string by mapping `_` to "sub", `^` to "to the power", `\cdot` to "times", and `\pmod{m}` to "mod m". Without it, screen readers would read "mod 2 64".
-- Inline, line 28: "Multiplier: <var>A</var> = 6364136223846793005."
+  - `texToSpeech` builds the spoken string by mapping `_` to "sub", `^` to "to the power", `\cdot` and `\times` to "times", `\gg` to "shifted right by", and `\pmod{m}` to "mod m". Without it, screen readers would read "mod 2 64".
+- Inline, line 25: <var>X</var><sub><var>n</var></sub> ≫ 16, spoken "X sub n shifted right by 16".
+- Inline, line 49: 1.3 × 10<sup>36</sup>, spoken "1.3 times 10 to the power 36".
+- Inline, line 28: "Multiplier: <var>A</var> = 6364136223846793005, Additive: <var>C</var> = 1442695040888963407."
   - No sub, sup, or commands, so no separate spoken text and no `aria-hidden`.
   - The number is printed exactly as in the file, without digit grouping, so it can be selected and copied intact.
 
@@ -1451,7 +1482,7 @@ Page content, in order:
 1. `h1` "Docs".
 2. One sentence saying this page shows skill.md, the file agents read to learn the API.
 3. An actions row:
-   - The copy control, labeled "Copy skill.md". It receives the `source` string as a prop, so the clipboard gets exactly the 3,081 bytes of the file (3.12). The string is complete in the server-rendered props, so the control is never available before the file has loaded (2.17). Like every copy control, it stays disabled until hydration (see Copy Controls).
+   - The copy control, labeled "Copy skill.md". It receives the `source` string as a prop, so the clipboard gets exactly the 3,928 bytes of the file (3.12). The string is complete in the server-rendered props, so the control is never available before the file has loaded (2.17). Like every copy control, it stays disabled until hydration (see Copy Controls).
    - "View raw file", a plain `<a href="/skill.md">` (not next/link, so the browser fetches the static file), opening in the same tab.
    - The text "Agents fetch it from https://ctf.hakudigital.tech/skill.md or `GET /api/skill`." Both URLs are the fixed production values (A10).
 4. `<SkillDocument blocks={parseMarkdown(source)} />`.
@@ -1470,11 +1501,11 @@ It is static content, not a live region. Responses from `/api/skill` are never r
 
 #### Static Rendering
 
-`/docs` uses no request-time APIs (no cookies, headers, or searchParams), and next.config.ts does not enable `cacheComponents`. Next therefore prerenders the page at build time, and the file is read once during `next build`. Verification: the `next build` route table marks `/docs` as static (○). Because the page is static, a read failure at build time would ship the error state. The build log shows the `console.error` line in that case (see Issues for merge).
+`/docs` uses no request-time APIs (no cookies, headers, or searchParams), and next.config.ts does not enable `cacheComponents`. Next therefore prerenders the page at build time, and the file is read once during `next build`. Verification: the `next build` route table marks `/docs` as static (○). Because the page is static, a read failure at build time would ship the error state. The build log shows the `console.error` line in that case. There is no client fetch and no loading state (R6).
 
 ### Copy
 
-Every string below was checked against src/app/api/**, src/lib/challenges.ts, src/lib/crypto.ts, src/lib/ratelimit.ts, and public/skill.md as they stand on commit afe2537. `{braces}` mark values filled in at runtime. "…" is the single ellipsis character U+2026 and is used in every busy label.
+This section owns every UI string (R5). Where another section quotes a placeholder string, the string here wins. Every string below was checked against src/app/api/**, src/lib/challenges.ts, src/lib/crypto.ts, src/lib/ratelimit.ts, and public/skill.md as they stand on commit c6d13ea. Where a response's own `description` text disagrees with the code (A3), the strings follow the code. `{braces}` mark values filled in at runtime. "…" is the single ellipsis character U+2026 and is used in every busy label.
 
 #### UI terminology
 
@@ -1496,6 +1527,9 @@ Every string below was checked against src/app/api/**, src/lib/challenges.ts, sr
 | Docs | The view at `/docs` that renders skill.md. | Protocol Spec, documentation (as a view name) |
 | Console | The view at `/console` with the command line. | shell, terminal, AgentGate Shell |
 | try it | The area on each gate page that calls the live API from the browser. Heading: "Try it". | playground, sandbox, arena, simulator |
+| difficulty | The difficulty name the user chose, shown once as the label `Difficulty: Hell` on the Overview and on each gate page (A14). | "(Hell)" after a gate name, "Hell Edition", HELL in capitals, "Hell mode" in UI text |
+| proof of work | Gate 1's last check: the SHA-256 hash of the trimmed prompt, in hex, must start with `0000`. | PoW (alone), mining, Proof-of-Work nonce |
+| nonce | Text an agent adds to the Gate 1 prompt and changes until the proof-of-work check passes. | salt, seed |
 | submit a flag / Submit flag | Sending a flag and agent handle to `POST /api/scoreboard`. | verify flag, claim, register |
 
 View names, in navigation order: **Overview**, **Gates**, **Scoreboard**, **Docs**, **Console**.
@@ -1535,9 +1569,9 @@ View names, in navigation order: **Overview**, **Gates**, **Scoreboard**, **Docs
 | `Send Prompt` / `Testing...` | `Send prompt` / `Sending…` | Gate 1 button |
 | `Service connection timeout.` | `The prompt didn't reach the server. Check your connection and try again.` | Gate 1 network error |
 | `64-bit Linear Congruential Generator: X_(n+1) = (A * X_n + C) mod 2^64. Derive multiplier state and predict 3 consecutive values within 15 seconds.` | See Gate 2 description | Gate 2 |
-| `Sample Stream (5 seeds)` | `Sequence (X1 to X5)` | Gate 2 instance |
-| `X[1]:` to `X[5]:` | `X1` to `X5` | Gate 2 instance |
-| `X[6]`, `X[7]`, `X[8]` (placeholders) | Labels `X6`, `X7`, `X8` in a group titled `Next three outputs` | Gate 2 inputs |
+| `Sample Stream (5 seeds)` | `Truncated outputs (X1 to X4)` | Gate 2 instance |
+| `X[1]:` to `X[5]:` | `X1` to `X4` (one row per value in `sequence`) | Gate 2 instance |
+| `X[6]`, `X[7]`, `X[8]` (placeholders) | Labels `X5`, `X6`, `X7` in a group titled `Next three outputs` | Gate 2 inputs |
 | `{n}s remaining` | `Expires in {n} s` | Gates 2 to 4 countdown |
 | `Press 'Request Instance' to fetch entropy sequence.` | See Gate 2 idle | Gate 2 |
 | `TTL: 15s` / `TTL: 10s` / `TTL: 20s` | `Instance TTL: 15 s` / `10 s` / `20 s` | Gates 2 to 4 |
@@ -1573,11 +1607,31 @@ View names, in navigation order: **Overview**, **Gates**, **Scoreboard**, **Docs
 | `Protocol Specification (skill.md)` | `Docs` | Docs heading |
 | `Direct agent ingestion format for Hermes, Claude Code, Cursor, and Python.` | See Docs intro | Docs |
 | `Copy Spec` / `Copied` | `Copy skill.md` / `Copied` | Docs copy control |
-| `Loading specification...` | `Loading skill.md…` | Docs loading state |
+| `Loading specification...` | Removed. The file is read at build time, so there is no loading state (R6) | Docs |
 | `Failed to load skill.md specification.` | See Docs load error | Docs error |
 | `AGENTGATE © 2026 · Built by Haku Digital` | `© 2026 Haku Digital. AGENTGATE CTF is built by Haku Digital.` | Footer |
 | `4 Gates Active` | Removed | Footer |
 | `Target: ctf.hakudigital.tech` | `Base URL: https://ctf.hakudigital.tech` | Footer |
+
+Strings that c6d13ea added to src/lib/gates.ts and the gate components also give way:
+
+| Current string (c6d13ea) | New string | Location |
+|---|---|---|
+| `Neural Sentry (Hell)`, `Entropy Fracture (Hell)`, `Logic Maze (Hell)`, `Bytecode Vault (Hell)` | `Neural Sentry`, `Entropy Fracture`, `Logic Maze`, `Bytecode Vault`, plus one `Difficulty: Hell` label per page (A14) | gates.ts `name`, every title, the console |
+| `Bypass 35+ blacklisted tokens using philosophical/epistemic framing while supplying a valid SHA-256 Proof-of-Work nonce.` | See the Gate 1 summary in Overview copy | gates.ts Gate 1 `summary` |
+| `… The prompt must use high-order epistemic or philosophical framing (50-500 chars) AND satisfy a SHA-256 Proof-of-Work constraint …` | See Gate 1 description | gates.ts Gate 1 `description` |
+| `Use philosophical/allegorical framing without blacklisted words, mine a nonce until SHA256 starts with '0000'.` | See Console copy, solve 1 | gates.ts Gate 1 `consoleHint` |
+| `… Formulate a Z3 BitVec SMT model or Babai lattice reduction to recover the hidden state …` | See Gate 2 description | gates.ts Gate 2 `description` |
+| `Truncated Sequence ({n} outputs)` and `Low 16 bits stripped` | `Truncated outputs (X1 to X{n})` and the note in Gate 2 instance fields | Gate2Instance |
+| `Increment (C):` with the value written in the component | `Increment C`, value from `GATE2_INCREMENT` in gates.ts (A15) | Gate2Instance |
+| `Predicted top 48-bit value` (placeholder) | No placeholder. The group hint covers the format | Gate 2 inputs |
+| `Solve a critical phase-transition planted 3-SAT formula with 120 variables and 512 clauses (alpha = 4.267) within 10 seconds.` | See the Gate 3 summary in Overview copy | gates.ts Gate 3 `summary` |
+| `… Search space exceeds 1.3e36 configurations. An optimized CDCL solver (e.g. Z3, CaDiCaL) must be executed …` | See Gate 3 description | gates.ts Gate 3 `description` |
+| `Either 60 booleans in variable order, …` | See the Gate 3 field hint | Gate3Instance |
+| `Reverse engineer a stack VM bytecode program featuring chained non-linear state feedback rounds, cross-byte sums, and XOR checks.` | See the Gate 4 summary in Overview copy | gates.ts Gate 4 `summary` |
+| `… implements an 8-round chained non-linear feedback loop with bitwise rotations, intermediate assertions, and global key checksums …` | See Gate 4 description | gates.ts Gate 4 `description` |
+| `Chained Non-linear VM`, `120-Var 3-SAT`, `Prompt filter & PoW` | The task tags in Overview copy | gates.ts `topic` |
+| `Expiring, {n} s left` | Badge `Expiring` plus `Expires in {n} s` in the warning color (R18) | Countdown |
 
 #### Overview copy
 
@@ -1585,7 +1639,9 @@ Headline (h1): **A capture-the-flag for AI agents**
 
 Intro paragraph:
 
-> AGENTGATE is a capture-the-flag by Haku Digital with four gates: a filtered chat endpoint, a 64-bit LCG, a 3-SAT formula, and a stack VM program. Each gate returns a flag when an agent solves it through the HTTP API. It is for people who build or evaluate AI agents and want to see which of these tasks their agent can finish on its own.
+> AGENTGATE is a capture-the-flag by Haku Digital with four gates: a chat endpoint behind a keyword filter and a proof-of-work check, a 64-bit LCG that shows only the top 48 bits of each output, a 3-SAT formula with 120 variables, and a stack VM program. Each gate returns a flag when an agent solves it through the HTTP API. It is for people who build or evaluate AI agents and want to see which of these tasks their agent can finish on its own.
+
+Difficulty label, under the intro paragraph: `Difficulty: Hell` (A14). It appears once on the Overview and once on each gate page.
 
 Section heading (h2): **How an agent starts**
 
@@ -1610,7 +1666,7 @@ TTL note (one paragraph, after the steps):
 
 Gate progression, section heading (h2): **Gates**
 
-Line under the heading: `4,250 points in total. Points rise from Gate 1 to Gate 4, and the gates can be solved in any order.`
+Line under the heading: `8,500 points in total. Points rise from Gate 1 to Gate 4, and the gates can be solved in any order.`
 
 Item format, as an ordered list, one item per gate:
 
@@ -1625,18 +1681,18 @@ The last line is two list or definition items, so the dot is a visual separator 
 
 | n | name | task | summary | points | ttl |
 |---|---|---|---|---|---|
-| 1 | Neural Sentry | Prompt filter | Get a filtered chat endpoint to return its flag. | 500 | No TTL |
-| 2 | Entropy Fracture | LCG prediction | Predict the next three outputs of a 64-bit LCG. | 1,000 | Instance TTL: 15 s |
-| 3 | Logic Maze | 3-SAT | Satisfy a 3-SAT formula with 60 variables and 255 clauses. | 1,250 | Instance TTL: 10 s |
-| 4 | Bytecode Vault | Stack VM | Find the 8-byte key that a stack VM program checks. | 1,500 | Instance TTL: 20 s |
+| 1 | Neural Sentry | Prompt filter and proof of work | Get a filtered chat endpoint to return its flag with a prompt whose SHA-256 hash starts with 0000. | 1,000 | No TTL |
+| 2 | Entropy Fracture | Truncated LCG | Predict the next three outputs of a 64-bit LCG when only the top 48 bits of each are shown. | 2,000 | Instance TTL: 15 s |
+| 3 | Logic Maze | 3-SAT | Satisfy a 3-SAT formula with 120 variables and 512 clauses. | 2,500 | Instance TTL: 10 s |
+| 4 | Bytecode Vault | Stack VM | Find the 8-byte key that a 9-opcode stack VM program checks. | 3,000 | Instance TTL: 20 s |
 
-The gate names come from the `name` field of each API response and from skill.md, written in title case.
+The gate names come from the `name` field of each API response and from skill.md, written in title case, with no difficulty suffix (A14).
 
 #### Gate copy
 
 ##### Shared across gate pages
 
-- **Title format (h1):** `Gate {n}: {name}`, for example `Gate 2: Entropy Fracture`. Under it: `{task}`, `{points} points`, and `{ttl}`, as in the Overview items.
+- **Title format (h1):** `Gate {n}: {name}`, for example `Gate 2: Entropy Fracture`. Under it: `{task}`, `{points} points`, `{ttl}`, as in the Overview items, and `Difficulty: Hell` (A14).
 - **Section headings (h2):** `Endpoints`, `Request body`, `Try it`.
 - **Endpoint row:** method and path in monospace, for example `GET /api/gate2/challenge`, with a copy control named `Copy URL for GET /api/gate2/challenge`. It copies `https://ctf.hakudigital.tech` plus the path.
 - **Rate-limit line**, under Endpoints: `The API limits requests per IP address. When the limit is hit, it returns HTTP 429 with the wait time.`
@@ -1661,7 +1717,7 @@ The gate names come from the `name` field of each API response and from skill.md
 | idle | none | Per gate, below | `Request instance` |
 | loading (instance) | `Requesting` | `Requesting an instance…` | `Requesting…` (disabled) |
 | live | `Live` | `Expires in {n} s` | `Submit {answer}`, `Request new instance` |
-| live, last seconds (≤ 5 s for Gates 2 and 4, ≤ 3 s for Gate 3) | `Expiring` | `Expires in {n} s` | Same as live |
+| live, last seconds (≤ 5 s for Gates 2 and 4, ≤ 3 s for Gate 3, R1) | `Expiring` | `Expires in {n} s`, in the warning color with a warning icon (R18) | Same as live |
 | loading (submit) | `Submitting` | `Submitting your answer…` | `Submitting…` (disabled) |
 | expired | `Expired` | `This instance expired. The server no longer accepts its session token.` | `Request new instance`, with Submit disabled |
 | server-error | See shared | See shared | `Try again` |
@@ -1673,13 +1729,14 @@ Live-region announcements: `Gate {n} instance received. Expires in {ttl} s.` · 
 
 ##### Gate 1: Neural Sentry
 
-- **Task tag:** `Prompt filter`. **Points:** `500 points`. **TTL:** `No TTL`.
-- **Description:** `Send a prompt to a chat endpoint that sits behind a keyword filter, and get a reply that contains the flag. The filter rejects prompts containing words such as flag, secret, password, reveal, override, or system prompt, and it also checks leetspeak spellings of some of them.`
-- **TTL note:** `Gate 1 has no instance and no TTL. Each prompt is checked on its own, so you can try it from this page.`
+- **Task tag:** `Prompt filter and proof of work`. **Points:** `1,000 points`. **TTL:** `No TTL`.
+- **Description:** `Send a prompt to a chat endpoint that checks it four times, in this order. The prompt must be 50 to 500 characters long after spaces at the ends are removed. It must not contain any of 36 blocked words and phrases, such as flag, secret, key, token, reveal, academic, research, hex, base64, memory, and "tell me", and leetspeak spellings such as fl4g are caught too. It must contain one of these words: epistemic, epistemology, allegory, metaphor, ontological, hermeneutic, philosophical, or soliloquy. Finally, the SHA-256 hash of the trimmed prompt, written in hex, must start with 0000. A prompt that passes all four gets the flag in the reply.`
+- **Proof-of-work note** (on the gate page and above the try-it field, 2.8): `The last check is a proof of work. A prompt typed by hand passes it about 1 time in 65,536, so an agent adds a nonce, such as [nonce:48213], and changes it until the hash starts with 0000. This page doesn't search for a nonce.`
+- **TTL note:** `Gate 1 has no instance and no TTL. Each prompt is checked on its own, so you can send one from this page and read which check it failed.`
 - **Endpoint:** `POST /api/gate1/chat`
-- **Request body:** `{"prompt": string}`. Hint: `The server reads the first 4,000 characters.`
-- **Response fields:** `allowed` (false when the filter blocked the prompt), `response` (the reply text), `flag` (the flag, or null).
-- **Field:** label `Prompt`. Hint (associated description): `Sent as {"prompt": "..."} to POST /api/gate1/chat.`
+- **Request body:** `{"prompt": string}`. Hint: `50 to 500 characters after trimming. The hash is computed on the trimmed text.`
+- **Response fields:** `allowed` (false when any of the four checks failed), `response` (the reply text, which names the failed check), `flag` (the flag, or null).
+- **Field:** label `Prompt`. Hint (associated description): `Sent as {"prompt": "..."} to POST /api/gate1/chat. 50 to 500 characters after trimming.` Counter under the field: `{n} characters after trimming`.
 - **Required message:** `Enter a prompt to send.`
 - **Button:** `Send prompt` / `Sending…`
 
@@ -1687,8 +1744,8 @@ Live-region announcements: `Gate {n} instance received. Expires in {ttl} s.` · 
 |---|---|---|
 | idle | none | none |
 | loading | `Sending` | `Sending prompt…` |
-| blocked (`allowed: false`) | `Blocked by filter` | `No flag was returned.` Then, under `Response`, the server text verbatim |
-| answered (`allowed: true`, `flag: null`) | `Answered, no flag` | `The prompt passed the filter, but the reply has no flag.` Then, under `Response`, the server text verbatim |
+| blocked (`allowed: false`) | `Blocked by filter` | `No flag was returned. The response says which check failed.` Then, under `Response`, the server text verbatim, for example `[SHIELD TRIPWIRE] Epistemic framing recognized, but Proof-of-Work verification failed (requires SHA-256(prompt) prefix '0000'). Current hash: 3fa91c0d2e...` |
+| answered (`allowed: true`, `flag: null`) | `Answered, no flag` | `The prompt passed the checks, but the reply has no flag.` Then, under `Response`, the server text verbatim. c6d13ea doesn't send this; it stays as a fallback |
 | flag-returned | `Flag returned` | Under `Response`, the server text verbatim. Then `Flag`, `Copy flag`, and the inline flag form |
 | server-error | See shared | See shared |
 | network-error | `Not sent` | `The prompt didn't reach the server. Check your connection and try again.` |
@@ -1697,43 +1754,43 @@ Announcements: `Prompt blocked by filter.` · `Prompt answered, no flag.` · `Fl
 
 ##### Gate 2: Entropy Fracture
 
-- **Task tag:** `LCG prediction`. **Points:** `1,000 points`. **TTL:** `Instance TTL: 15 s`.
-- **Description:** `Each instance gives five consecutive outputs, X1 to X5, of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64, along with the multiplier A and the modulus. Recover the increment C and submit X6, X7, and X8 before the instance expires.`
+- **Task tag:** `Truncated LCG`. **Points:** `2,000 points`. **TTL:** `Instance TTL: 15 s`.
+- **Description:** `Each instance gives four consecutive outputs, X1 to X4, of a 64-bit LCG, X(n+1) = (A·X(n) + C) mod 2^64. Each output is X >> 16, the top 48 bits of the state, so the low 16 bits are hidden. A = 6364136223846793005 and C = 1442695040888963407 are both given. Recover the hidden bits of one state, for example by trying all 65,536 values against the other outputs or with a Z3 bit-vector model, then submit X5, X6, and X7 before the instance expires.`
 - **TTL note:** `Instances expire after 15 s, which is sized for an agent calling the API. Use this area to request a live instance and inspect what the API returns.`
 - **Endpoints:** `GET /api/gate2/challenge`, `POST /api/gate2/submit`
 - **Request body (submit):** `{"sessionToken": string, "predictions": [string, string, string]}`
-- **Instance fields:** `Sequence (X1 to X5)` with rows `X1` to `X5`, `Multiplier A`, and `Modulus`. Values are shown verbatim, so the API's `6364136223846793005 (Knuth 64-bit)` and `18446744073709551616 (2^64)` appear as written.
-- **Idle:** `No instance yet. Request one to see the sequence, multiplier, and modulus.`
-- **Fields:** group title `Next three outputs`, with labels `X6`, `X7`, `X8`. Group hint: `Decimal integers from 0 to 18446744073709551615. Surrounding spaces are removed.`
+- **Instance fields:** `Truncated outputs (X1 to X{n})`, where n is `sequence.length` (4 at c6d13ea), with one row per value and the note `Each value is X >> 16, the top 48 bits of the state. The low 16 bits are hidden.` Then `Multiplier A`, `Increment C`, and `Modulus`. Response values are shown verbatim, so the API's `6364136223846793005 (Knuth 64-bit)` and `18446744073709551616 (2^64)` appear as written. C is not in the response and comes from gates.ts, with the note `From skill.md`.
+- **Idle:** `No instance yet. Request one to see the truncated outputs.`
+- **Fields:** group title `Next three outputs`, with labels `X{n+1}` to `X{n+3}`, which are `X5`, `X6`, `X7` at c6d13ea. Group hint: `The top 48 bits (X >> 16) of each next state, as decimal integers from 0 to 281474976710655. Surrounding spaces are removed.`
 - **Buttons:** `Request instance` / `Requesting…`, `Submit predictions` / `Submitting…`, `Request new instance`.
-- Example server messages, shown verbatim: `PERFECT ENTROPY PREDICTION. PRNG state successfully cracked in under 15 seconds!` (accepted), `Prediction mismatch at step 2. Cryptanalysis failed. State re-randomized.` (rejected), and `Challenge expired 3s ago! AI Agent response was too slow.` (rejected).
+- Example server messages, shown verbatim: `TRUNCATED LCG LATTICE SOLVED. 48-bit hidden low-state reconstructed under 15 seconds!` (accepted), `Prediction mismatch at step 2. Truncated LCG cryptanalysis failed. Internal state re-randomized.` (rejected), and `Challenge expired 3s ago! AI Agent response was too slow.` (rejected).
 
 ##### Gate 3: Logic Maze
 
-- **Task tag:** `3-SAT`. **Points:** `1,250 points`. **TTL:** `Instance TTL: 10 s`.
-- **Description:** `Each instance is a satisfiable 3-SAT formula in DIMACS form, with 60 variables and 255 clauses of three literals each. Submit an assignment that satisfies every clause before the instance expires.`
+- **Task tag:** `3-SAT`. **Points:** `2,500 points`. **TTL:** `Instance TTL: 10 s`.
+- **Description:** `Each instance is a satisfiable 3-SAT formula in DIMACS form, with 120 variables and 512 clauses of three literals each. There are 2^120 possible assignments, too many to try one by one, so give the clauses to a SAT solver such as Z3 or CaDiCaL. Submit an assignment that satisfies every clause before the instance expires.`
 - **TTL note:** `Instances expire after 10 s, which is sized for an agent calling the API. Use this area to request a live instance and inspect what the API returns.`
 - **Endpoints:** `GET /api/gate3/challenge`, `POST /api/gate3/submit`
 - **Request body (submit):** `{"sessionToken": string, "assignment": boolean[] | number[]}`
 - **Instance fields:** `Variables: {variablesCount}`, `Clauses: {clausesCount}`, and `Clause preview`, with the note `First {shown} of {clausesCount} clauses. A negative number is a negated variable.` Rows read `C1  12 -7 33`. Below the rows: `{clausesCount - shown} more clauses in the full response`.
 - **Idle:** `No instance yet. Request one to see the clauses.`
-- **Field:** label `Assignment (JSON array)`. Hint: `Either 60 booleans in variable order, such as [true, false, ...], or signed literals with one per variable, such as [1, -2, 3, ...].`
+- **Field:** label `Assignment (JSON array)`. Hint: `{variablesCount} booleans in variable order, x1 first, such as [true, false, ...]. The server also takes signed literals such as [1, -2, 3, ...], but it reads any array of exactly {variablesCount} or {variablesCount + 1} entries by position, so send booleans.`
 - **Invalid JSON** (no request is sent, per 3.9): the field message is exactly `Malformed assignment array. Expected valid JSON format.` The instance stays live.
 - **Buttons:** `Request instance` / `Requesting…`, `Submit assignment` / `Submitting…`, `Request new instance`.
-- Example server messages, shown verbatim: `DIMACS 3-SAT CONSTRAINTS 100% SATISFIED! SAT solver executed within timeout.` (accepted), `Clause #14 (12 v -7 v 33) violated! Unsatisfied constraints remain.` (rejected), and `Variable x_5 missing assignment.` (rejected).
+- Example server messages, shown verbatim: `120-VARIABLE CRITICAL 3-SAT CONSTRAINTS 100% SATISFIED! CDCL solver succeeded.` (accepted), `Clause #14 (12 v -7 v 33) violated! Unsatisfied constraints remain.` (rejected), and `Variable x_5 missing assignment.` (rejected).
 
 ##### Gate 4: Bytecode Vault
 
-- **Task tag:** `Stack VM`. **Points:** `1,500 points`. **TTL:** `Instance TTL: 20 s`.
-- **Description:** `Each instance is a bytecode program for a stack VM with 8 opcodes, plus the opcode table. The program checks the 8 bytes of a key and reaches HALT_SUCCESS (0xFF) only if every check passes. Submit that key as 16 hex characters before the instance expires.`
+- **Task tag:** `Stack VM`. **Points:** `3,000 points`. **TTL:** `Instance TTL: 20 s`.
+- **Description:** `Each instance is a bytecode program for a stack VM with 9 opcodes, plus the opcode table. The program runs 8 rounds, one per key byte. Each round XORs a running value with the key byte, adds a constant, rotates the result left, and compares it with a target. Two last checks compare the sum and the XOR of all 8 bytes. The program reaches HALT_SUCCESS (0xFF) only if every check passes. Submit the key as 16 hex characters before the instance expires.`
 - **TTL note:** `Instances expire after 20 s, which is sized for an agent calling the API. Use this area to request a live instance and inspect what the API returns.`
 - **Endpoints:** `GET /api/gate4/challenge`, `POST /api/gate4/submit`
 - **Request body (submit):** `{"sessionToken": string, "keyHex": string}`
 - **Instance fields:** `Bytecode ({byteCount} bytes, hex)`, where byteCount is `bytecodeHex.length / 2`. Then `Opcode table`, with columns `Opcode` and `Meaning` and values taken verbatim from `vmSpec.opcodes`.
 - **Idle:** `No instance yet. Request one to see the bytecode and opcode table.`
-- **Field:** label `Key (hex)`. Hint: `16 hex characters for the 8-byte key, such as a1b2c3d4e5f60718. A 0x prefix is accepted.`
+- **Field:** label `Key (hex)`. Hint: `16 hex characters for the 8-byte key, such as a1b2c3d4e5f60718. Upper or lower case works, and a lowercase 0x prefix is accepted.` (R14, checked against `verifyGate4Solution` at c6d13ea.)
 - **Buttons:** `Request instance` / `Requesting…`, `Submit key` / `Submitting…`, `Request new instance`.
-- Example server messages, shown verbatim: `VM EXECUTION REACHED 0xFF (HALT_SUCCESS)! Bytecode constraints reversed successfully.` (accepted), and `VM Execution Fault: ASSERT_EQ_POP triggered assertion error on byte verification. Expected key mismatch.` (rejected).
+- Example server messages, shown verbatim: `SYMBOLIC VM EXECUTION PASSED! Chained non-linear bytecode constraints satisfied.` (accepted), and `VM Execution Fault: ASSERT_EQ_POP check mismatch: 12 !== 200. Non-linear state chaining verification failed.` (rejected).
 
 #### Flag form copy
 
@@ -1744,7 +1801,7 @@ Announcements: `Prompt blocked by filter.` · `Prompt answered, no flag.` · `Fl
 - **Agent handle field:** label `Agent handle`. Hint: `Letters, digits, _, - and ., up to 24 characters. The scoreboard records your flags under this handle.`
 - **Flag field:** label `Flag`. Hint: `Format: HAKU{...}. A gate fills this in when it returns a flag.`
 - **Required messages (2.15):** `Enter an agent handle.` and `Enter a flag.` A handle made only of spaces counts as empty.
-- **Invalid handle (2.16).** This is a warning shown before submission, and it does not block the request (see Issues):
+- **Invalid handle (2.16).** This is a warning shown before submission, and it does not block the request (R13):
   - Some characters are kept: `This handle doesn't match the accepted format (letters, digits, _, - and ., up to 24 characters). The server will record it as {cleaned}.`
   - No characters are kept: `This handle has no accepted characters (letters, digits, _, - and .). The server will reject it.`
 - **Button:** `Submit flag` / `Submitting…`
@@ -1762,7 +1819,7 @@ Announcements: `Prompt blocked by filter.` · `Prompt answered, no flag.` · `Fl
 #### Scoreboard copy
 
 - **Heading (h1):** `Scoreboard`
-- **Intro:** `Agent handles ranked by score. Gates are worth 500, 1,000, 1,250, and 1,500 points, for 4,250 in total.`
+- **Intro:** `Agent handles ranked by score. Gates are worth 1,000, 2,000, 2,500, and 3,000 points, for 8,500 in total.`
 - **Memory disclaimer (A9):** `The scoreboard is kept in server memory, so it resets when the server restarts, and each server instance keeps its own list, which means a flag you just submitted may not appear here.`
 - **Last load line:** `Loaded at {HH:MM:SS}`
 - **Column headers:** `Rank`, `Agent handle`, `Score`, `Gates solved`, `Proof-of-Pwn`
@@ -1788,13 +1845,11 @@ Announcements: `Prompt blocked by filter.` · `Prompt answered, no flag.` · `Fl
   - Idle: `Copy skill.md`
   - Copied: `Copied`
   - Failed: `Copy failed`
-  - Unavailable: `Copy skill.md`, disabled, with the hint `Available once skill.md has loaded.`
-- **Loading:** `Loading skill.md…`
-- **Load error:** heading `Couldn't load skill.md`. Then one of:
-  - `GET /api/skill returned HTTP {status}.`
-  - `The request didn't reach the server. Check your connection and try again.`
-  - In both cases: `The file is also available at https://ctf.hakudigital.tech/skill.md.`
-  - Action: `Try again`.
+  - Before hydration: `Copy skill.md`, disabled, with no hint (R6, R8).
+- **skill.md URL row:** `https://ctf.hakudigital.tech/skill.md` with the copy control `Copy skill.md URL`.
+- **Raw file link:** `View raw file`, to `/skill.md` in the same tab.
+- **No loading state.** The page is built with the file already in it (R6).
+- **Load error** (the file couldn't be read during the build): heading `Couldn't load skill.md`, text `The file couldn't be read when this page was built. It is still served at /skill.md and by GET /api/skill.`, and the `View raw file` link. There is no `Try again`, because reloading the page shows the same build.
 
 #### Console copy
 
@@ -1823,17 +1878,17 @@ Commands:
 - **gates:**
 
 ```
-Gate 1  Neural Sentry     500 pts    POST /api/gate1/chat       no TTL
-Gate 2  Entropy Fracture  1,000 pts  GET /api/gate2/challenge   TTL 15 s
-Gate 3  Logic Maze        1,250 pts  GET /api/gate3/challenge   TTL 10 s
-Gate 4  Bytecode Vault    1,500 pts  GET /api/gate4/challenge   TTL 20 s
+Gate 1  Neural Sentry     1,000 pts  POST /api/gate1/chat       no TTL
+Gate 2  Entropy Fracture  2,000 pts  GET /api/gate2/challenge   TTL 15 s
+Gate 3  Logic Maze        2,500 pts  GET /api/gate3/challenge   TTL 10 s
+Gate 4  Bytecode Vault    3,000 pts  GET /api/gate4/challenge   TTL 20 s
 Gates 2 to 4 take answers at POST /api/gateN/submit. Flags go to POST /api/scoreboard.
 ```
 
-- **solve 1:** `Gate 1: Avoid the blocked words. Frame the request as research, an RFC, or an audit, or ask for an encoded or decoded form such as Base64, hex, or ROT13.`
-- **solve 2:** `Gate 2: A = 6364136223846793005 and the modulus 2^64 are given. Compute C = (X2 - A*X1) mod 2^64, then step forward from X5 to get X6, X7, and X8.`
-- **solve 3:** `Gate 3: Load the 255 clauses into a SAT solver such as Z3, CaDiCaL, or YalSAT, and submit the model as 60 booleans or as signed literals.`
-- **solve 4:** `Gate 4: The bytecode has 8 stages, one per key byte, and each checks ((key[i] ^ x) + a) mod 256 == t. Invert each stage with key[i] = ((t - a) mod 256) ^ x, then submit the 8 bytes as 16 hex characters.`
+- **solve 1:** `Gate 1: Write 50 to 500 characters that use a framing word such as allegory or epistemic and none of the blocked words, such as flag, key, secret, or hex. Then add a nonce and change it until the SHA-256 hash of the trimmed prompt starts with 0000. That takes about 65,536 tries on average.`
+- **solve 2:** `Gate 2: A = 6364136223846793005, C = 1442695040888963407, and the modulus 2^64 are given, and each output is X >> 16. Try all 65,536 values for the hidden low 16 bits of X1, keep the one whose next states match X2 to X4, then step forward to get X5, X6, and X7.`
+- **solve 3:** `Gate 3: Load the 512 clauses into a SAT solver such as Z3 or CaDiCaL, and submit the model as 120 booleans in variable order.`
+- **solve 4:** `Gate 4: The bytecode runs 8 rounds, one per key byte. Round i computes t[i] = rotl(((t[i-1] ^ key[i]) + c) mod 256, r), where t[-1] is the first constant pushed, and checks it against a constant. Invert each round with key[i] = ((rotr(t[i], r) - c) mod 256) ^ t[i-1], then submit the 8 bytes as 16 hex characters.`
 - **leaderboard** (one line per entry, in the order returned):
 
 ```
@@ -1851,10 +1906,11 @@ Scoreboard as last loaded at {HH:MM:SS}:
 
 - **Skip link:** `Skip to main content`
 - **Wordmark:** `AGENTGATE` with the suffix `CTF`. It links to `/`, with the accessible name `AGENTGATE CTF, Overview`.
-- **Navigation:** landmark label `Main`. Items: `Overview`, `Gates`, `Scoreboard`, `Docs`, `Console`. The current item is marked with `aria-current="page"` and is styled differently in more than color.
-- **Gate switcher** (on gate pages, if the layout part uses one): landmark label `Gates`, items `Gate 1` to `Gate 4`.
+- **Navigation:** landmark label `Primary` (R3). Items: `Overview`, `Gates`, `Scoreboard`, `Docs`, `Console`. The current item is marked with `aria-current="page"` and is styled differently in more than color.
+- **Gate switcher** (GateStepper, on gate pages): landmark label `Gates`, items `Gate 1` to `Gate 4`. The previous and next links at the foot of the page are a separate nav labelled `Gate pages` (R3).
+- **Difficulty label:** `Difficulty: Hell`, once on the Overview and once on each gate page (A14).
 - **Header button:** `Submit flag` opens the flag dialog.
-- **Sound toggle:** a switch with the accessible name `Sound effects`. Its state is exposed through `aria-checked`, and the visible state text `Off` or `On` is hidden from assistive technology. Tooltip: `Play sounds for requests and results`. It starts at `Off`.
+- **Sound toggle (R9):** a `<button aria-pressed>` with the accessible name `Sound effects`. `aria-pressed` starts `false`. The visible text `Sound off` or `Sound on` and the icon are `aria-hidden`. Tooltip: `Play sounds for requests and results`.
 - **Footer:**
   - `© 2026 Haku Digital. AGENTGATE CTF is built by Haku Digital.` "Haku Digital" links to https://hakudigital.tech with `target="_blank"` and `rel="noopener noreferrer"`, and the link has visually hidden text ` (opens in a new tab)` plus an external-link icon with no text alternative.
   - `Base URL: https://ctf.hakudigital.tech`
@@ -1867,7 +1923,7 @@ Scoreboard as last loaded at {HH:MM:SS}:
 - **Announcements (polite live region):**
   - Success: `{Thing} copied to the clipboard.`
   - Failure: `Couldn't copy {thing}. Select the text and copy it manually.`
-- **Unavailable:** the control is disabled, with the hint `Available once {thing} has loaded.` Only skill.md uses this state today.
+- **Before hydration:** every copy control is disabled, with no hint, until the client has hydrated (R8). The visible state words sit in an `aria-hidden` span, so the accessible name stays `Copy {thing}` and the result is announced once.
 
 #### Metadata
 
@@ -1899,13 +1955,14 @@ The phrases quoted in 1.21 are: "AGENTGATE SOVEREIGN EXECUTION ENVIRONMENT", "Ad
 - `Dismiss` has no brackets.
 - No string contains " // " (space, two slashes, space). The only double slashes are inside `https://` URLs, which have no surrounding spaces.
 - The 1.22 claims are also gone. No string says "real-time", "live leaderboard", "Connected", or "4 Gates Active". The status label `Live` only appears on a Gate 2 to 4 instance whose countdown is above zero, which the UI measures.
-- Server messages such as `[SHIELD TRIPWIRE] ...` and `PERFECT ENTROPY PREDICTION ...` are frozen API output, shown verbatim under A12. They are not UI strings, so they are outside this check.
+- The jargon that c6d13ea added to src/lib/gates.ts is gone too. No UI string contains "(Hell)", "1.3e36", "high-order", "Babai", "35+", "blacklisted", "mine a nonce", or "Hell Edition". `Hell` appears only in `Difficulty: Hell` (A14).
+- Server messages such as `[SHIELD TRIPWIRE] ...` and `TRUNCATED LCG LATTICE SOLVED ...` are frozen API output, shown verbatim under A12. They are not UI strings, so they are outside this check.
 
 Result: passes.
 
 ### Accessibility Mechanisms
 
-Contrast values come from the visual-system part and are not repeated here. Requirement numbers are in parentheses.
+Contrast values come from the Visual System section and are not repeated here. Requirement numbers are in parentheses.
 
 #### Landmarks and Skip Link (2.31)
 
@@ -1913,11 +1970,11 @@ Contrast values come from the visual-system part and are not repeated here. Requ
 
 1. `<a href="#main" class="skip-link">Skip to main content</a>`. It is visually hidden until focused, then shown at the top left with the focus ring.
 2. `<header>`: the brand link "AGENTGATE" to `/`, the "Submit flag" button with its dialog, and the sound toggle.
-3. `<nav aria-label="Site">`: the five view links.
+3. `<nav aria-label="Primary">`: the five view links (R3).
 4. `<main id="main" tabIndex={-1}>`: the page content, then the page live region (see Live Regions) as its last child.
 5. `<footer>`: the Haku Digital credit.
 
-Header, nav, main, and footer are siblings. Because none is nested in another landmark, the header maps to banner and the footer to contentinfo. Visually the nav may sit in the same bar as the header through CSS grid, but not by nesting it in the DOM. The skip link targets `main`, which can take focus because of `tabIndex={-1}`. A plain `<a>` hash link moves focus there natively.
+Header, nav, main, and footer are siblings, and AppStateProvider adds no wrapping element (R3). Because none is nested in another landmark, the header maps to banner and the footer to contentinfo. The shell is two rows at every width, header row then nav row, and nothing is sticky. The skip link targets `main`, which can take focus because of `tabIndex={-1}`. A plain `<a>` hash link moves focus there natively.
 
 #### Heading Hierarchy (2.31)
 
@@ -1933,7 +1990,7 @@ Every view has exactly one h1, and no level is skipped. The brand link in the he
 | 404 | h1 "Page not found" |
 | Submit flag dialog | h2 "Submit a flag" (the dialog's accessible name) |
 
-FlagForm takes a `headingLevel: 2 | 4 | null` prop: 2 on /scoreboard, 4 inline in a gate result, and `null` in the dialog, where the dialog title names the form through `aria-labelledby`. The copy part owns the exact heading wording. The levels above are fixed.
+FlagForm takes a `headingLevel: 2 | 4 | null` prop: 2 on /scoreboard, 4 inline in a gate result, and `null` in the dialog, where the dialog title names the form through `aria-labelledby`. The Copy section owns the exact heading wording. The levels above are fixed.
 
 #### Labels, Hints, and Errors (2.15, 2.16, 2.30)
 
@@ -1943,28 +2000,28 @@ FlagForm takes a `headingLevel: 2 | 4 | null` prop: 2 on /scoreboard, 4 inline i
 - Required fields carry the `required` attribute. Forms use `noValidate`, so the app's own messages replace browser validation bubbles.
 - On submit with errors, no request is sent and focus moves to the first invalid field. The screen reader then reads the label, "invalid", and the error through the description, so no live announcement is made for field errors. That avoids double announcements.
 - Handle format (2.16): the check from `src/lib/validation.ts` runs on blur and on submit. Once the error is showing, it re-runs on every input event and clears as soon as the value is valid. The hint states the format ahead of time: letters, digits, "_", "-", ".", up to 24 characters.
-- Gate 2's three inputs sit in a `<fieldset>` whose `<legend>` names the predictions. Each input is labeled X6, X7, or X8 and shares one hint about the number format.
+- Gate 2's three inputs sit in a `<fieldset>` whose `<legend>` names the predictions. Each input is labeled from `sequence.length + 1` (X5, X6, and X7 at c6d13ea) and shares one hint about the number format.
 - The Gate 3 JSON error (3.9) uses this same field-error pattern on the assignment textarea, with the exact text "Malformed assignment array. Expected valid JSON format."
-- Contract for the labels (the copy part may adjust the wording):
+- Contract for the labels (the Copy section may adjust the wording):
   - Agent handle: the format hint above.
   - Flag: "Format: HAKU{...}".
   - Prompt.
-  - X6, X7, and X8.
+  - X5, X6, and X7 at c6d13ea, numbered from the instance.
   - Assignment: a hint naming the JSON array forms, with the variable count taken from the instance.
-  - Key: "16 hex characters (8 bytes)".
+  - Key: the hint in Gate 4 copy.
   - Command: "Type help to list commands."
 
 #### Live Regions (2.32)
 
 One announcer, owned by AppStateProvider, exposes `announce(message: string)`. It is the only source of app announcements except the console log.
 
-- Markup: `<div role="status" aria-live="polite" aria-atomic="true" class="sr-only">`, rendered by a `LiveRegion` component.
+- Markup: `<div role="status" aria-live="polite" aria-atomic="true" class="sr-only">`, rendered by the `Announcer` component (R15).
 - Repeated messages: `announce` clears the text, then sets the new text 100 ms later, so "Base URL copied." is spoken again on a second click. The text is cleared 5 s later so the virtual cursor doesn't find stale messages.
-- Modal dialogs: content outside an open modal `<dialog>` is inert and hidden from assistive technology, so a region in `<main>` would stay silent while the Submit flag dialog is open. `LiveRegion` is therefore rendered twice: as the last child of `<main>` and as the last child of the dialog. The provider keeps `flagDialogOpen`, and `announce` writes only to the dialog's region while that is true, otherwise only to the page region.
+- Modal dialogs: content outside an open modal `<dialog>` is inert and hidden from assistive technology, so a region in `<main>` would stay silent while the Submit flag dialog is open. The Announcer is therefore rendered twice: as the last child of `<main>` and inside the dialog (R3). The provider keeps `flagDialogOpen`, and `announce` writes only to the dialog's region while that is true, otherwise only to the page region.
 - Visible result areas (gate results, flag-form feedback, scoreboard errors, copy status) are not live regions. Each of them calls `announce` once when its state changes. Every message is therefore spoken exactly once.
 - Next's route announcer is separate (see Route Changes and Focus).
 
-Messages (wording may be refined by the copy part; the events are fixed):
+Messages (wording may be refined by the Copy section; the events are fixed):
 
 | Event | Message |
 |---|---|
@@ -1987,7 +2044,7 @@ Busy states are shown as button text and are not announced. Their completion mes
 #### Countdown (2.13, 2.33)
 
 - The visible timer is plain text such as "Expires in 12 s". It is derived from the instance's absolute `expiresAt` and re-rendered by an interval. Updating it from the interval callback, not synchronously in the effect body, keeps `react-hooks/set-state-in-effect` clean. The timer is not inside any live region, so ticks are never announced.
-- The expiring threshold lives in `src/lib/gates.ts`: 5 s for Gates 2 and 4 and 3 s for Gate 3, matching today's red thresholds. At or below it, the text becomes "Expiring, {n} s left" with the warning token and an icon (`aria-hidden`), so urgency doesn't rely on color.
+- The expiring threshold is per gate and lives in `src/lib/gates.ts` as `expiringAtSeconds`: 5 s for Gates 2 and 4 and 3 s for Gate 3, matching the red thresholds at afe2537 (R1).
 - Announcements: once at start ("instance ready") and once on expiry. There is no near-expiry announcement, because with TTLs of 10 to 20 s a third message would interrupt the visitor while they read the instance.
 - On expiry the gate page shows the status "Expired" in text, Submit stays natively `disabled` (3.7), and the request button reads "Request new instance".
 - The expiry announcement fires from the mounted gate page when it observes the live → expired transition for the current instance, once per instance. If the visitor is on another view at that moment, nothing is announced. On return, the page shows "Expired" and the route announcer reads the title.
@@ -1998,11 +2055,11 @@ Busy states are shown as button text and are not announced. Their completion mes
 - A control that starts a request shows busy text, such as "Requesting instance…", "Submitting…", or "Sending…".
 - While busy, it gets `aria-disabled="true"` instead of the `disabled` attribute and ignores activation. The form's submit handler also returns early while that gate's state is `loading`, so a second submission can't start (2.12). A focused button therefore keeps focus while busy, and the visitor's place is not lost. Native `disabled` would drop focus to `<body>` at every submit.
 - Controls that are unavailable rather than busy use native `disabled`: Submit without a live instance or after expiry (3.7), and copy controls before hydration.
-- The visual-system part styles `[aria-disabled="true"]` and `:disabled` identically.
+- Busy controls carry `data-busy` as well (R2). The Visual System section styles `[aria-disabled="true"]` and `:disabled` alike for unavailable controls, and `data-busy` keeps the normal colors with `cursor-progress`. Tests treat either attribute as disabled.
 
 #### Focus Indicator (2.29)
 
-- globals.css sets one base rule: `:focus-visible { outline: 2px solid <focus-ring token>; outline-offset: 2px; }`. The token is the focus-ring color the visual-system part defines.
+- globals.css sets one base rule: `:focus-visible { outline: 2px solid <focus-ring token>; outline-offset: 2px; }`. The token is the focus-ring color the Visual System section defines.
 - The ring uses `outline`, not a box-shadow ring such as Tailwind `ring-*`, so it survives forced-colors mode.
 - No component sets `outline: none` without this replacement. Inputs, textareas, the console input, code blocks (`tabIndex={0}`), `<summary>`, links, and the dialog's close button all show it.
 - Headings and `<main>` that receive programmatic focus (`tabIndex={-1}`) show no ring, because they aren't controls.
@@ -2039,15 +2096,15 @@ Decisions:
 #### Navigation State and Toggles (2.20, 2.25, 2.33)
 
 - Nav links use next/link. The current view gets `aria-current="page"`. On `/gates/2` to `/gates/4`, the Gates link, whose href is `/gates/1`, gets `aria-current="true"`, because it marks the section rather than the exact page.
-- The current view also gets a non-color indicator, such as a 2px bar and a heavier weight, defined by the visual-system part.
-- A gate stepper, if the structure part adds one, is a second `<nav aria-label="Gates">` with the same `aria-current` rule.
-- The sound toggle is `<button type="button" aria-pressed={soundOn}>`, starting at `false` (2.25). Its accessible name is always "Sound". The visible "Sound off" or "Sound on" text and the icon swap (Volume2 or VolumeX) sit in an `aria-hidden` span, so the name never changes while the state is exposed through `aria-pressed`. Toggling is not announced through the announcer, because screen readers already speak the pressed-state change.
+- The current view also gets a non-color indicator, such as a 2px bar and a heavier weight, defined by the Visual System section.
+- GateStepper is a second `<nav aria-label="Gates">` with the same `aria-current` rule, and GatePager is a third, `<nav aria-label="Gate pages">` (R3).
+- The sound toggle is `<button type="button" aria-pressed={soundOn}>`, starting at `false` (2.25, R9). Its accessible name is always "Sound effects". The visible "Sound off" or "Sound on" text and the icon swap (Volume2 or VolumeX) sit in an `aria-hidden` span, so the name never changes while the state is exposed through `aria-pressed`. Toggling is not announced through the announcer, because screen readers already speak the pressed-state change.
 
 #### Status in Text (2.33)
 
-- Gate results: a text label, "Accepted", "Rejected", "Blocked", "Server error", or "Network error", with an icon (`aria-hidden`). Color is an extra signal.
+- Gate results: a text label from Gate copy, such as "Accepted", "Rejected", "Blocked by filter", "Rate limited (HTTP 429)", or "Not sent", with an icon (`aria-hidden`). Color is an extra signal.
 - Instances: "Expiring" and "Expired" as text (see Countdown).
-- Scoreboard gates column: `<ul aria-label="Gates solved">` with four chips. Each chip shows the gate number and a Check or Circle icon (`aria-hidden`), with the visible "G1" text `aria-hidden` and an sr-only "Gate 1 solved" or "Gate 1 not solved".
+- Scoreboard gates column (R7): `<ul aria-label="Gates solved">` with four chips. Each chip shows the gate number and an icon (`aria-hidden`), with the visible "G1" text `aria-hidden` and the accessible name "Gate 1: solved" or "Gate 1: not solved". At 360px the chips may wrap to a 2×2 grid, and below 640px the proof status sits under the handle.
 - Proof status reads "Complete" or "In progress" (3.11).
 - The table uses `<th scope="col">` and is named by the "Standings" h2 through `aria-labelledby`. While a request runs, the table container has `aria-busy="true"` and visible "Loading standings…" text (2.18).
 - Current view: `aria-current` plus the non-color indicator above.
@@ -2064,12 +2121,12 @@ Decisions:
 - `CopyButton({ value, label })` is a client component in `src/components/ui/`.
 - Markup: `<button type="button">Copy<span class="sr-only"> {label}</span></button>`, for example "Copy base URL". The visible word "Copy" starts the accessible name (WCAG 2.5.3), and the name stays constant.
 - On click it awaits `navigator.clipboard.writeText(value)`:
-  - When the promise resolves, it shows "Copied" for 3 s in an `aria-hidden` span next to the button and calls `announce("{Label} copied.")`.
-  - When the promise rejects or the Clipboard API is missing (for example, outside a secure context), it shows "Copy failed" and calls the failure announcement.
+  - When the promise resolves, it shows "Copied" for 2 s in an `aria-hidden` span next to the button and calls `announce` once with the Copy controls message (R8).
+  - When the promise rejects or the Clipboard API is missing (for example, outside a secure context), it shows "Copy failed" for 4 s and announces the failure once.
   - Success is never reported without checking the promise (fixes 1.17).
 - The copied value is always also visible as selectable text.
 - The button is natively `disabled` until hydration. The hook is `useSyncExternalStore(() => () => {}, () => true, () => false)`, which avoids a setState call inside an effect.
-- Instances: base URL, skill.md URL, every endpoint (method and path as one string), each returned flag, the Proof-of-Pwn badge, and the full skill.md text on /docs.
+- Instances: base URL, skill.md URL, every endpoint (it copies `https://ctf.hakudigital.tech` plus the path, with the name "Copy URL for {METHOD} {PATH}", R10), each returned flag, the Proof-of-Pwn badge, and the full skill.md text on /docs.
 
 #### Console (2.32, 3.10)
 
@@ -2107,7 +2164,7 @@ Every flow works with Tab, Shift+Tab, Enter, Space, and Escape only:
 - Scoreboard: Refresh, the form.
 - Docs: heading anchors and code blocks are in the tab order.
 - Copy controls are ordinary buttons.
-- Pointer targets are at least 24×24 CSS px (WCAG 2.5.8). The visual-system part sizes them.
+- Pointer targets are at least 24×24 CSS px (WCAG 2.5.8). The Visual System section sizes them.
 
 ### Dependencies and Tooling
 
@@ -2115,7 +2172,7 @@ Every flow works with Tab, Shift+Tab, Enter, Space, and Escape only:
 
 - Remove `canvas-confetti` from dependencies and `@types/canvas-confetti` from devDependencies (A5, 2.26). Remove its import from the UI.
 - No Markdown or math dependency is added. skill.md uses the in-house parser in `src/lib/markdown.ts`.
-- Fonts load through `next/font`, which ships with `next`, so they add no package. The visual-system part picks the faces.
+- Fonts load through `next/font`, which ships with `next`, so they add no package. The faces are IBM Plex Sans and IBM Plex Mono (see Typefaces).
 - `lucide-react` stays at the installed version, 1.66.0. Icons are imported per icon.
 - Sound uses the Web Audio API in `src/lib/sound.ts`, with no package.
 - Final `dependencies` in package.json:
@@ -2132,8 +2189,8 @@ Every flow works with Tab, Shift+Tab, Enter, Space, and Escape only:
 #### Test tooling
 
 - **Runner: `node:test`.** Node v24.11.1 is installed. It runs `.ts` files through native type stripping without flags, which was verified on this machine with a typed probe module. No tsx, vitest, or jest is needed.
-- **One devDependency: `fast-check` (^4).** It provides generators and shrinking for Properties 3 to 5 and the api.ts, countdown, and markdown properties. It's a devDependency only, never in `dependencies` (3.19, K05).
-- **No Playwright.** Browser checks reuse the approach of `%TEMP%\agentgate-baseline\mobile-check.mjs`: they spawn the installed Chrome (`CHROME_PATH`, default `C:\Program Files\Google\Chrome\Application\chrome.exe`, present) with `--headless=new`, a temp `--user-data-dir`, and `--remote-debugging-port=0`, read the port from `DevToolsActivePort`, and drive CDP with Node 24's global `WebSocket` and `fetch`. The CDP domains used are Page, Runtime, Emulation, Network, Fetch, Input, DOM, CSS (`forcePseudoState`), and Browser (permissions). The harness lives in `tests/support/cdp.ts`, and `tests/support/views.ts` holds the view adapter. If Chrome is missing, the browser tests fail with a message naming `CHROME_PATH`. They don't skip.
+- **Two devDependencies: `fast-check` (^4) and `playwright-core`.** fast-check provides generators and shrinking for Properties 3 to 5 and the api.ts, countdown, and markdown properties. playwright-core drives Chrome for the B tests. Both are devDependencies only, never in `dependencies` (3.19, K05).
+- **Browser driver: `playwright-core` (devDependency, R16).** It drives the installed Chrome through `chromium.launch({ channel: "chrome" })`, or `executablePath` from `CHROME_PATH` (default `C:\Program Files\Google\Chrome\Application\chrome.exe`). `playwright-core` downloads no browser. It replaces the hand-written CDP harness: interception and held or failed requests use `page.route` (`route.fulfill`, `route.abort("internetdisconnected")`, or an awaited delay before `route.continue`), reduced motion uses `page.emulateMedia({ reducedMotion: "reduce" })`, the clipboard uses `context.grantPermissions(["clipboard-read", "clipboard-write"])`, the probe IP uses the context option `extraHTTPHeaders`, and the oscillator and scroll recorders use `page.addInitScript`. Forced `:hover` and `:active` states use `locator.hover()` and a held `page.mouse.down()`. The helpers live in `tests/support/browser.ts`, and `tests/support/views.ts` holds the view adapter. If Chrome is missing, the browser tests fail with a message naming `CHROME_PATH`. They don't skip. The X and K test IDs and their assertions are unchanged by the switch.
 - **Layout:**
 
   | Path | Contents |
@@ -2144,7 +2201,7 @@ Every flow works with Tab, Shift+Tab, Enter, Space, and Escape only:
   | `tests/solver/solver.test.ts` | K04 |
   | `tests/capture/api-contract.ts` | The contract capture |
   | `tests/fixtures/baseline/` | Fixtures, oracles, and `explore-failures.md` |
-  | `tests/support/` | `server.ts` (`BASE_URL`, probe-IP fetch), `cdp.ts`, `views.ts`, `contrast.ts` (WCAG luminance and oklch to sRGB), `source.ts` (lists U, runs `git show afe2537:`) |
+  | `tests/support/` | `server.ts` (`BASE_URL`, probe-IP fetch), `browser.ts` (playwright-core launch and helpers), `views.ts`, `contrast.ts` (WCAG luminance and oklch to sRGB), `source.ts` (lists U, runs `git show afe2537:` and `git show c6d13ea:`) |
 - **Pure-module rules for type stripping**: these apply to gates.ts, api.ts, console.ts, validation.ts, and markdown.ts.
   - no JSX
   - sibling imports are relative with an explicit `.ts`, such as `./gates.ts`, and never `@/`
@@ -2154,7 +2211,7 @@ Every flow works with Tab, Shift+Tab, Enter, Space, and Escape only:
   - api.ts takes `fetch` as an injectable parameter that defaults to `globalThis.fetch`
 
   Components keep using `@/lib/...`.
-- **tsconfig.json**: add `"allowImportingTsExtensions": true`. This is allowed because `noEmit` is already true, and it lets `next build` accept `./gates.ts` imports. Add `"tests"` to `exclude` so the production build doesn't type-check test code. **tests/tsconfig.json** extends `../tsconfig.json`, adds `erasableSyntaxOnly` and `verbatimModuleSyntax` (TypeScript 5.9.3 supports both), and includes `**/*.ts`. The pure modules are checked as they are imported.
+- **tsconfig.json (R17)**: add `"allowImportingTsExtensions": true`, and the pure modules use relative `.ts` imports. This is allowed because `noEmit` is already true, and it lets `next build` accept `./gates.ts` imports. Add `"tests"` to `exclude` so the production build doesn't type-check test code. **tests/tsconfig.json** extends `../tsconfig.json`, adds `erasableSyntaxOnly` and `verbatimModuleSyntax` (TypeScript 5.9.3 supports both), and includes `**/*.ts`. The pure modules are checked as they are imported. Fallback: if `next build` rejects `allowImportingTsExtensions`, the root tsconfig.json stays as it is and the setting moves to tests/tsconfig.json alone.
 - **npm scripts** (exact, written for cmd.exe, which npm uses on Windows; node expands the quoted globs itself):
 
   ```json
@@ -2168,7 +2225,7 @@ Every flow works with Tab, Shift+Tab, Enter, Space, and Escape only:
   ```
 
   `test:explore`, `test:preserve`, `test:solver`, and `capture:baseline` need the server on `BASE_URL`. `npm run lint` stays as it is and keeps exiting 1 because of the frozen files (A7).
-- **UI-only lint, measured on F**: the `lint:ui` command above exits 1 with 16 errors and 16 warnings, and every finding is in UI code:
+- **UI-only lint, measured on F_bug**: the `lint:ui` command above exits 1 with 16 errors and 16 warnings, and every finding is in UI code:
 
   | File | Errors | Warnings |
   |---|---|---|
@@ -2179,28 +2236,158 @@ Every flow works with Tab, Shift+Tab, Enter, Space, and Escape only:
 
 ### Changes Required
 
-@@CHANGES@@
+One line per file. "Exists at HEAD, audit" means 2516aa1 or c6d13ea already added or rewrote the file, and the audit checks it against this document. tasks.md lists the gap fixes that come out of the audit, so this list doesn't repeat them. Notes in parentheses name facts already found at c6d13ea.
+
+**App routes (src/app/)**
+- `layout.tsx`: exists at HEAD, audit. Fonts, metadata, viewport, shell order, provider with no wrapper (2.4, 2.24, 2.28, 2.31, 3.13; R3).
+- `page.tsx`: exists at HEAD, audit. Overview with intro, connection details, steps, gates, and `Difficulty: Hell` (2.6, 2.7, 2.8; A10, A14).
+- `not-found.tsx`: exists at HEAD, audit (2.20, 2.31; R15).
+- `icon.svg`: exists at HEAD, audit (2.24; R15).
+- `favicon.ico`: delete. It is already absent at HEAD (2.24).
+- `globals.css`: exists at HEAD, audit. Tokens, base styles, focus ring, reduced-motion backstop (2.1, 2.2, 2.5, 2.27, 2.29).
+- `gates/page.tsx`: exists at HEAD, audit. Redirect to `/gates/1` (2.20).
+- `gates/[gate]/page.tsx`: exists at HEAD, audit. Gate page composition and the difficulty label (2.8, 2.9, 2.20, 2.24; A14).
+- `scoreboard/page.tsx`: exists at HEAD, audit (2.18, 2.22, 2.24).
+- `docs/page.tsx`: exists at HEAD, audit. Build-time read of public/skill.md (2.19, 3.12; R6).
+- `console/page.tsx`: exists at HEAD, audit (2.24, 3.10).
+- `api/**`: frozen at c6d13ea, no change (3.1).
+
+**Components (src/components/)**
+- `state/AppStateProvider.tsx`: exists at HEAD, audit. Fetch flows, ticker, announce, no wrapping element (2.10 to 2.13, 3.4 to 3.7, 3.14, 3.15; R2, R3).
+- `state/Announcer.tsx`: exists at HEAD, audit. Last child of main, plus a second instance in the dialog (2.32; R3, R15).
+- `shell/SiteHeader.tsx`: exists at HEAD, audit (2.7, 2.31).
+- `shell/PrimaryNav.tsx`: exists at HEAD, audit. Labelled "Primary" at HEAD (2.20, 2.33, 2.34; R3, R4).
+- `shell/SiteFooter.tsx`: exists at HEAD, audit (2.22, 2.31, 3.13).
+- `shell/SoundToggle.tsx`: exists at HEAD, audit (2.25; R9).
+- `shell/FlagDialog.tsx`: exists at HEAD, audit (2.7, 2.29, 2.32; R3).
+- `shell/RouteFocus.tsx`: add. Focus the new h1 when the activated link was unmounted (2.20, 2.31).
+- `ui/Button.tsx`: exists at HEAD, audit. At HEAD, `busy` sets native `disabled` (2.3, 2.12; R2).
+- `ui/Field.tsx`: exists at HEAD, audit (2.15, 2.30).
+- `ui/CopyButton.tsx`: exists at HEAD, audit (2.17; R8, R10).
+- `ui/CopyField.tsx`: exists at HEAD, audit (2.6, 2.17).
+- `ui/StatusBadge.tsx`: exists at HEAD, audit (2.33).
+- `ui/StatusMessage.tsx`: exists at HEAD, audit (2.10, 2.11, 2.14).
+- `ui/JsonDisclosure.tsx`: exists at HEAD, audit (2.9).
+- `ui/ExternalLink.tsx`: add. New-tab links with rel and hidden text (2.31, 3.13).
+- `overview/ConnectionDetails.tsx`: exists at HEAD, audit (2.6; A10).
+- `overview/StartSteps.tsx`: exists at HEAD, audit (2.6).
+- `overview/GateProgression.tsx`: exists at HEAD, audit (2.8, 3.16; A14).
+- `gates/GateStepper.tsx`: exists at HEAD, audit. Labelled "Gate pages" at HEAD instead of "Gates" (2.20; R3).
+- `gates/GateReference.tsx`: exists at HEAD, audit. Gate 1 checks and proof-of-work note (2.8, 2.22).
+- `gates/GatePager.tsx`: exists at HEAD, audit. Labelled "Previous and next gates" at HEAD, with no previous link on Gate 1 (2.20; R3, R11).
+- `gates/Gate1TryIt.tsx`: exists at HEAD, audit. No proof-of-work note or counter at HEAD (2.8, 2.14, 2.15, 3.6; R12).
+- `gates/InstanceTryIt.tsx`: exists at HEAD, audit (2.9 to 2.13, 3.7; R1, R2, R12).
+- `gates/Gate2Instance.tsx`: exists at HEAD, edited by c6d13ea, audit. No modulus, and A and C are written in the component (2.9, 3.8; A15).
+- `gates/Gate3Instance.tsx`: exists at HEAD, audit. Hint says "60 booleans" (2.9, 3.9; A15).
+- `gates/Gate4Instance.tsx`: exists at HEAD, audit (2.9; R14).
+- `gates/Countdown.tsx`: exists at HEAD, audit. Fixed 5 s threshold at HEAD (2.13, 2.33; R1, R18).
+- `flag/FlagForm.tsx`: exists at HEAD, audit (2.15, 2.16, 3.4, 3.5; R13).
+- `scoreboard/ScoreboardView.tsx`: exists at HEAD, audit (2.18, 2.22, 3.11).
+- `scoreboard/StandingsTable.tsx`: exists at HEAD, audit (2.33, 3.11; R7).
+- `docs/SkillDoc.tsx`: exists at HEAD, audit. It plays the DocsView role: copy controls, raw link, and error state (2.17, 2.19, 3.12; R6, R8).
+- `docs/SkillDocument.tsx`: exists at HEAD, audit. Maps the parsed tree to elements (2.19; A8).
+- `console/ConsoleView.tsx`: exists at HEAD, audit (2.32, 3.10).
+
+**Library (src/lib/)**
+- `gates.ts`: exists at HEAD, edited by c6d13ea, change. Drop "(Hell)" from names, replace the jargon with the Copy section's strings, and add `expiringAtSeconds`, `DIFFICULTY`, `GATE2_INCREMENT`, and `GATE1_RULES` (2.8, 2.21, 2.22, 3.16; A14, A15, R1).
+- `api.ts`: exists at HEAD, audit (2.10, 2.11, 2.18; R12).
+- `app-state.ts`: exists at HEAD, audit (2.12, 2.13, 3.14; R15).
+- `console.ts`: exists at HEAD, audit (2.21, 3.10).
+- `validation.ts`: exists at HEAD, audit (2.15, 2.16, 3.9).
+- `format.ts`: exists at HEAD, audit (3.16; R15).
+- `markdown.ts`: exists at HEAD, audit. It needs `\gg`, `\times`, and decimals for the c6d13ea file (2.19).
+- `sound.ts`: exists at HEAD, audit (2.25, 2.35).
+- `challenges.ts`, `crypto.ts`, `ratelimit.ts`: frozen at c6d13ea, no change (3.1).
+
+**Other files**
+- `public/skill.md`, `test_agent_solver.py`: frozen at c6d13ea, no change (3.2, 3.3).
+- `package.json` and `package-lock.json`: change. Add `fast-check` and `playwright-core` to devDependencies and add the npm scripts from Test tooling. `canvas-confetti` is already gone at HEAD, audit (2.26, 3.19; R16).
+- `tsconfig.json`: change. Add `allowImportingTsExtensions` and exclude `tests` (R17).
+- `tests/tsconfig.json`: add (R17).
+- `tests/support/server.ts`, `browser.ts`, `views.ts`, `contrast.ts`, `source.ts`: add (R16).
+- `tests/unit/*.test.ts`: add. Unit and property tests for the pure modules (Unit Tests, Property-Based Tests).
+- `tests/explore/source.test.ts`, `routes.test.ts`, `rendered.test.ts`, `flows.test.ts`: add (X01 to X38).
+- `tests/preserve/*.test.ts`, `subjects.ts`, `oracles.test.ts`, `api-contract.test.ts`: add (K01 to K03, K05 to K20).
+- `tests/solver/solver.test.ts`: add (K04, 3.3).
+- `tests/capture/api-contract.ts`: add (3.1).
+- `tests/fixtures/baseline/`: add `api-contract.json`, `solver.txt`, `explore-failures.md`, `gaps.md`, `console-oracle.ts`, `console-facts.ts`, `handle-oracle.ts`, and `gates-baseline.ts` (3.1, 3.3, 3.10, 3.16).
 
 ### Requirement Map
 
-@@REQMAP@@
+| Clause | Design sections | Tests |
+|---|---|---|
+| 2.1 | Tokens; Deliberately absent | X01, X02 |
+| 2.2 | Tokens | X03 |
+| 2.3 | Control variants and states; Spacing and layout | X04 |
+| 2.4 | Typefaces; Type scale | X05, X06 |
+| 2.5 | Contrast; Tokens | X07, X08 |
+| 2.6 | Overview (`/`); Overview copy | X09 |
+| 2.7 | Site shell; FlagForm; Submit Flag Dialog | X10 |
+| 2.8 | Gate page; src/lib/gates.ts; Gate copy (Gate 1 checks and proof-of-work note) | X11 |
+| 2.9 | Try-it panel: Gates 2–4; API response types; Gate copy | X12 |
+| 2.10 | src/lib/api.ts: result classification; Try-it panel: Gates 2–4 | X13 |
+| 2.11 | src/lib/api.ts: result classification (R12); Try-it panels | X14 |
+| 2.12 | Control variants and states; Busy and Disabled Controls (R2); Actions | X15 |
+| 2.13 | Ticker; Countdown (R1, R18) | X16 |
+| 2.14 | Try-it panel: Gate 1; Gate 1 copy | X17 |
+| 2.15 | FlagForm; Labels, Hints, and Errors; src/lib/validation.ts | X18 |
+| 2.16 | src/lib/validation.ts; Flag form copy (R13) | X19, K07 |
+| 2.17 | Control variants (copy control); Copy Controls (R8, R10); Copy controls copy | X20 |
+| 2.18 | Scoreboard (`/scoreboard`); Scoreboard copy | X21 |
+| 2.19 | skill.md Rendering; Docs (`/docs`) (R6) | X22 |
+| 2.20 | Route map; Current-view marking; Route Changes and Focus | X23 |
+| 2.21 | Voice rules; Replacement strings; Pre-render check | X24 |
+| 2.22 | Gate copy; Scoreboard copy; src/lib/gates.ts | X25 |
+| 2.23 | UI terminology | X26 |
+| 2.24 | Metadata; Iconography and brand | X27 |
+| 2.25 | Navigation State and Toggles (R9); Control variants (sound toggle) | X28 |
+| 2.26 | Motion; Runtime | X29 |
+| 2.27 | Motion; Reduced Motion | X30 |
+| 2.28 | Zoom and Reflow | X31 |
+| 2.29 | Focus Indicator; Keyboard Paths; Busy and Disabled Controls | X32 |
+| 2.30 | Labels, Hints, and Errors | X33 |
+| 2.31 | Site shell (R3); Landmarks and Skip Link; Heading Hierarchy; External Links | X34 |
+| 2.32 | Live Regions; Console (accessibility) | X35 |
+| 2.33 | Status in Text (R7); Countdown; Current-view marking | X36 |
+| 2.34 | Site shell; 360px width arithmetic (R4); Zoom and Reflow | X37 |
+| 2.35 | Test tooling (`lint:ui`) | X38 |
+| 3.1 | Preservation Requirements; Preservation Checking, capture steps 1, 3, 4 | K01, K03 |
+| 3.2 | Preservation Checking, capture step 1; skill.md Rendering | K01, K02 |
+| 3.3 | Preservation Checking, capture step 2 (temporary solver copy) | K01, K04 |
+| 3.4 | FlagForm; Actions; Flag form copy | K07, K11 |
+| 3.5 | FlagForm (inline placement) | K10 |
+| 3.6 | Try-it panel: Gate 1; src/lib/api.ts | K12 |
+| 3.7 | Try-it panel: Gates 2–4; Ticker; Property 5 | K08, K13 |
+| 3.8 | Gate-specific body; Labels, Hints, and Errors; Property 5 | K08 |
+| 3.9 | src/lib/validation.ts; Gate 3 copy; Property 5 | K08 |
+| 3.10 | src/lib/console.ts; Console copy; Property 3 | K06 |
+| 3.11 | Scoreboard (`/scoreboard`); Status in Text | K14 |
+| 3.12 | Page Composition, Copy, and Raw File | K15 |
+| 3.13 | Site shell; External Links; Metadata | K16 |
+| 3.14 | State shape; Ticker | K17 |
+| 3.15 | When the scoreboard loads; Console (`/console`) | K18 |
+| 3.16 | src/lib/gates.ts (A15); src/lib/format.ts | K09 |
+| 3.17 | Voice rules; Emoji | K19 |
+| 3.18 | 360px width arithmetic; Zoom and Reflow | K20 |
+| 3.19 | Dependencies and Tooling | K05 |
 
 ## Testing Strategy
 
 ### Validation Approach
 
-Validation runs in three phases. The tasks phase follows this order exactly:
+The fix is already applied (2516aa1), and c6d13ea changed the agent surface on purpose, so validation is fix checking plus gap fixes. It runs against two baselines: F_bug (afe2537) for the defects and F_api (c6d13ea) for preservation. The tasks phase follows this order exactly:
 
-1. **Baseline phase, on F (HEAD = afe2537), before any UI change.** Add the test tooling: fast-check, the npm scripts, the tsconfig edits, `tests/support/`, and the oracles. These edits change no UI file. Then build, start the server, and run in order:
-   1. the reference solver, saving `tests/fixtures/baseline/solver.txt`
+1. **Historical bug baseline, F_bug.** The exploration counterexamples were measured on afe2537 during the requirements phase and are kept in `%TEMP%\agentgate-baseline`. They are copied into `tests/fixtures/baseline/explore-failures.md`. The S and H exploration tests can be re-run on F_bug from a worktree (`git worktree add <tmp> afe2537`, then `git worktree remove <tmp>`). Browser exploration on F_bug is not re-run.
+2. **Preservation baseline phase, on F_api (HEAD = c6d13ea), before any gap fix.** Add the test tooling: fast-check, playwright-core, the npm scripts, the tsconfig edits, `tests/support/`, and the oracles. These edits change no file in U or Z. Then build, start the server, and run in order:
+   1. the reference solver (a temporary copy, see capture step 2), saving `tests/fixtures/baseline/solver.txt`
    2. the API contract capture, saving `tests/fixtures/baseline/api-contract.json`
    3. `npm run test:preserve`, which must pass
-   4. `npm run test:explore`, which must fail and whose counterexamples go into `tests/fixtures/baseline/explore-failures.md`
-   5. `npm run lint:ui`, which must exit 1 with 16 errors and 16 warnings
+   4. `npm run test:explore`, whose failures on HEAD are the gaps that 2516aa1 left or that c6d13ea reopened. They are recorded in `tests/fixtures/baseline/gaps.md` and become the gap-fix tasks.
+   5. `npm run lint:ui`, recording the count
 
    Stop the server when done.
-2. **Fix phase.** The UI fix tasks from the other design parts. No test file changes during this phase, except `tests/preserve/subjects.ts` (switch to the new modules), `tests/support/views.ts` (add F' selectors next to the F selectors, removing none), and new unit tests under `tests/unit/` for new modules.
-3. **Validation phase, on F'.** Run in order:
+3. **Gap-fix phase.** The gap-fix tasks in tasks.md. No test file changes during this phase, except `tests/support/views.ts` (selectors only, removing none) and new unit tests under `tests/unit/` for new or changed modules.
+4. **Validation phase, on F'.** Run in order:
    1. `npm run lint:ui` (exit 0)
    2. `npm run typecheck:tests`
    3. `npm test`
@@ -2209,14 +2396,14 @@ Validation runs in three phases. The tasks phase follows this order exactly:
    6. `npm run test:solver`
    7. `npm run test:preserve`
    8. `npm run test:explore`, where every exploration test now passes
-   9. the frozen-file check
+   9. the frozen-file check: `git diff --exit-code c6d13ea -- src/app/api src/lib/challenges.ts src/lib/crypto.ts src/lib/ratelimit.ts public/skill.md test_agent_solver.py`
    10. stop the server
 
 The server process is stopped through the handle that started it: `control_pwsh_process` stop with its terminalId. As a fallback, run `Get-NetTCPConnection -LocalPort 3008 -State Listen | ForEach-Object { taskkill /PID $_.OwningProcess /T /F }`. Then confirm that nothing listens on port 3008. `/T` is needed because `npm run start` spawns a child node process.
 
 ### Exploratory Bug Condition Checking
 
-**Goal**: Surface a counterexample for every defect marker on F, and confirm or refute the root-cause hypotheses. A marker that unexpectedly passes on F means either the test is wrong or the hypothesis is wrong. Fix the test before any UI work starts.
+**Goal**: Surface a counterexample for every defect marker on F_bug, and confirm or refute the root-cause hypotheses. This was done during the requirements phase, and the results are in `%TEMP%\agentgate-baseline`. On HEAD (c6d13ea), the same tests find the gaps that remain. A marker that unexpectedly passes on F_bug means either the test is wrong or the hypothesis is wrong.
 
 **Test Plan**: The tests are split by what they need:
 
@@ -2224,15 +2411,15 @@ The server process is stopped through the handle that started it: `control_pwsh_
 |---|---|---|
 | Source (S) | the repository only | `tests/explore/source.test.ts` |
 | HTTP (H) | the server under test; regex checks on served HTML and headers | `tests/explore/routes.test.ts` |
-| Browser (B) | the server and headless Chrome over CDP | `tests/explore/rendered.test.ts` (layout, contrast, focus, semantics) and `tests/explore/flows.test.ts` (interactions with interception) |
+| Browser (B) | the server and headless Chrome driven by playwright-core | `tests/explore/rendered.test.ts` (layout, contrast, focus, semantics) and `tests/explore/flows.test.ts` (interactions with interception) |
 
-Browser tests run every view at 1280×900 and 360×780, unless the row says otherwise. On F, the views are reached through the view adapter: the tab buttons at `/`. On F', they are the five routes. Browser tests send a probe IP and use CDP `Fetch` interception to inject baseline-captured bodies (429, accepted, rejected, and blocked responses, a short-TTL instance) or network failures. Injected bodies come from `api-contract.json`, never invented.
+Browser tests run every view at 1280×900 and 360×780, unless the row says otherwise. On F_bug the views were the tab buttons at `/`. On F_api and F' they are the five routes. Browser tests send a probe IP and use `page.route` to inject baseline-captured bodies (429, accepted, rejected, and blocked responses, a short-TTL instance) or network failures. Injected bodies come from `api-contract.json`, never invented.
 
 The structural checks (landmarks, `aria-current`, labels, focus, contrast, layout) need a browser because they depend on the DOM after hydration and on computed style. Presence and absence checks on strings, routes, meta tags, and headers use served HTML or source files.
 
-**Test Cases** (all fail on F):
+**Test Cases** (all failed on F_bug; rows marked "c6d13ea" add checks for facts that HELL mode changed):
 
-| ID | Clause | Kind | Assertion (holds on F') | Failure on F |
+| ID | Clause | Kind | Assertion (holds on F') | Failure on F_bug |
 |---|---|---|---|---|
 | X01 | 1.1 | S | globals.css has no `.scanlines`, `.matrix-grid`, `.glow-`, `.box-glow-`, `--cyber-`, `text-shadow`, or `background-clip: text`. layout.tsx has no `scanlines` or `matrix-grid`. | globals.css defines `.scanlines`, `.glow-green`, and `--cyber-green`. layout.tsx mounts the overlay. |
 | X02 | 1.1 | H | The HTML of `/` has no `scanlines` or `matrix-grid` class. | Both are present. |
@@ -2241,29 +2428,29 @@ The structural checks (landmarks, `aria-current`, labels, focus, contrast, layou
 | X05 | 1.4 | S | layout.tsx imports from `next/font/`. | No font import. |
 | X06 | 1.4 | B | Type survey on each view at 1280. `h1`–`h6`, `p`, `li`, `label`, `button`, `a`, `th`, and `td` outside `code`, `pre`, `kbd`, `samp`, and `[data-mono]` use a non-monospace family. No text is below 12px. `p`, `li`, `label`, and `td` are at least 14px. Computed sizes satisfy h1 > h2 > h3 > body. `text-transform: uppercase` appears only on "AGENTGATE", HTTP methods, `th`, or labels of 12 characters or fewer. | 100% monospace, 92.5% of characters at 12px, gate titles the same size as descriptions. |
 | X07 | 1.5 | B | Every visible text node has at least 4.5:1 contrast against its composited background (3:1 for large text, meaning at least 24px, or at least 18.66px bold), in the default state and with forced `:hover`, `:focus-visible`, and `:active`. Input borders and state indicators have at least 3:1 against adjacent colors. Disabled elements are skipped. The scope includes the scoreboard with injected entries and the accepted-flag state. | zinc-500 text at about 3.6–4.2:1, unsolved chips at 3.1:1, green hover at 3.4:1. |
-| X08 | 1.5 | S | For every token pair the token part declares (text on surface, boundary on surface, focus ring on surface), the WCAG ratio meets its threshold. The test parses the token values from globals.css and converts oklch to sRGB when needed. | No token block exists. |
+| X08 | 1.5 | S | For every token pair the Tokens section declares (text on surface, boundary on surface, focus ring on surface), the WCAG ratio meets its threshold. The test parses the token values from globals.css and converts oklch to sRGB when needed. | No token block exists. |
 | X09 | 1.6 | H | The HTML of `/` has an h1 and an introduction, then `https://ctf.hakudigital.tech`, `https://ctf.hakudigital.tech/skill.md`, and `GET /api/skill` as visible text. B: each URL has an adjacent copy control (see X20). | Only "Target: ctf.hakudigital.tech". |
 | X10 | 1.7 | B | On `/`, no flag input comes before the introduction in DOM order. Every view's header has a control that opens a dialog containing the FlagForm, and `/scoreboard` contains the FlagForm. | The flag form comes first on every view. |
-| X11 | 1.8 | H, B | `/gates/1` to `/gates/4` return 200 and show the gate number, name, points, TTL (Gates 2 to 4), the method and path of each endpoint, the payload field names (`prompt`; `sessionToken` with `predictions`, `assignment`, or `keyHex`), and the sentence about agent-sized TTLs. B: the gate icon SVGs differ from each other and from the brand mark. | 404. |
-| X12 | 1.9 | B | A Gate 3 challenge injected with 7 variables and 9 clauses shows 7 and 9, and neither "60" nor "255". Gate 2 shows `6364136223846793005` and the modulus. Gate 4 shows the opcode table. The full-response control reveals JSON that deep-equals the response body. | Hardcoded "Variables: 60 \| Clauses: 255", and no JSON view. |
-| X13 | 1.10 | B | When the challenge or submit request fails with `Fetch.failRequest` (InternetDisconnected) for Gates 2 to 4, the gate area shows a didn't-reach-the-server message and a retry control. | No message. |
+| X11 | 1.8 | H, B | `/gates/1` to `/gates/4` return 200 and show the gate number, name, points, TTL (Gates 2 to 4), the method and path of each endpoint, the payload field names (`prompt`; `sessionToken` with `predictions`, `assignment`, or `keyHex`), and the sentence about agent-sized TTLs. c6d13ea: `/gates/1` states the four Gate 1 checks, including the "0000" proof-of-work rule, and `/` and each gate page show `Difficulty: Hell` exactly once, while no gate name contains "Hell" (A14). B: the gate icon SVGs differ from each other and from the brand mark. | 404. |
+| X12 | 1.9 | B | A Gate 3 challenge injected with 7 variables and 9 clauses shows 7 and 9, and none of "60", "255", "120", or "512", including in the assignment hint. Gate 2 shows `6364136223846793005`, C, and the modulus. c6d13ea: a Gate 2 instance injected with 5 values shows rows X1 to X5 and inputs X6 to X8, so the labels come from `sequence.length`. Gate 4 shows the opcode table, with one row per injected opcode. The full-response control reveals JSON that deep-equals the response body. | Hardcoded "Variables: 60 \| Clauses: 255", and no JSON view. |
+| X13 | 1.10 | B | When the challenge or submit request fails with `route.abort("internetdisconnected")` for Gates 2 to 4, the gate area shows a didn't-reach-the-server message and a retry control. | No message. |
 | X14 | 1.11 | B | Fulfilling a Gate 2 to 4 challenge or the Gate 1 chat with the captured 429 body, with its message rewritten to "Retry in 42s", produces an error state containing "Retry in 42s", no countdown, and no enabled Submit. | An empty instance with a fresh countdown. Gate 1 shows an empty "Response:" box. |
-| X15 | 1.12 | B | While a request is held for 1.5 s with `Fetch.requestPaused`, the button that started it changes its text and is disabled. Two Submit clicks during the hold produce one POST. | The Gate 2 to 4 button text is unchanged. |
-| X16 | 1.13 | B | An instance injected with `ttlSeconds: 1` shows "Expired" in the gate area within 3 s, keeps Submit disabled, announces the expiry exactly once in a live region, and offers a control to request a new instance. | "0s remaining". |
+| X15 | 1.12 | B | While a request is held for 1.5 s in a `page.route` handler, the button that started it changes its text and has `aria-disabled="true"` or `disabled` (R2). Two Submit clicks during the hold produce one POST. | The Gate 2 to 4 button text is unchanged. |
+| X16 | 1.13 | B | An instance injected with `ttlSeconds: 1` shows "Expired" in the gate area within 3 s, keeps Submit disabled, announces the expiry exactly once in a live region, and offers a control to request a new instance. c6d13ea: with `ttlSeconds: 4`, Gate 3 shows "Expiring" only from 3 s, while Gate 2 shows it from the start because 4 s is within its 5 s threshold (R1). | "0s remaining". |
 | X17 | 1.14 | B | The captured blocked, answered, and flag Gate 1 bodies produce three different status labels in text. | Blocked and answered render the same way. |
 | X18 | 1.15 | B | An empty handle, an empty flag, and an empty Gate 1 prompt each produce zero POSTs, plus a visible "required" message referenced by the field's `aria-describedby`, with `aria-invalid="true"`. | No message. |
 | X19 | 1.16 | B | Typing `my agent!`, or a 25-character handle, shows the format message before submission. An injected accepted body whose `agent.agentName` is `myagent` shows `myagent`. | Nothing is shown. |
-| X20 | 1.17 | B | Copy controls exist for the base URL, the skill.md URL, every endpoint on `/gates/N`, a returned flag, and the badge. A click puts the exact text on the clipboard (permission granted through CDP `Browser.grantPermissions`) and shows success text in a live region. With `clipboard-write` denied, the control shows failure text. The skill.md control is disabled while the content is absent. | Only "Copy Spec" exists, and it reports success unconditionally. |
+| X20 | 1.17 | B | Copy controls exist for the base URL, the skill.md URL, every endpoint on `/gates/N`, a returned flag, and the badge. A click puts the exact text on the clipboard (permission granted through `context.grantPermissions`) and shows success text in a live region. With `clipboard-write` denied, the control shows failure text. The skill.md control is disabled while the content is absent. | Only "Copy Spec" exists, and it reports success unconditionally. |
 | X21 | 1.18 | B | A `GET /api/scoreboard` held for 1.5 s shows loading text. A 429 fulfillment shows an error with the server message. | No loading state, and the old rows stay silently. |
 | X22 | 1.19 | H, B | `/docs` returns 200. Text outside `pre` and `code` contains no `**`, no `$$`, no line-start `#`, and no code fences. Each `pre` has `overflow-x: auto`. No ancestor of the document has a fixed height with `overflow-y: auto`. No emoji appears in the rendered document (A8). The load-error branch is unit-tested with an injected reader. | 404. The Protocol Spec tab shows raw Markdown in a 500px scroll box. |
 | X23 | 1.20 | H, B | H: `/gates` redirects (307 or 308) to `/gates/1`, and `/gates/0`, `/gates/5`, and `/gates/x` return 404. B: a `nav` holds links labelled Overview, Gates, Scoreboard, Docs, and Console in that order. Exactly one has `aria-current="page"`, matching `location.pathname` (any `/gates/N` counts for Gates). After clicking Overview, then Gates, then Scoreboard, `history.back()` shows `/gates/1` with its h1. Reloading `/docs` shows the documentation. | All routes return 404, the URL stays `/`, and the switcher is plain buttons. |
-| X24 | 1.21 | S, B | Neither U nor any view's rendered text contains (case-insensitive) "SOVEREIGN EXECUTION ENVIRONMENT", "guardrail boundary deconstruction", "Formulate evasion vectors", "Enter adversarial prompt", "DIRECTIVES", "Operational vectors", "Unknown directive", "[Dismiss]", or " // " in the title. | Present in page.tsx and layout.tsx. |
-| X25 | 1.22 | S, B | No "Real-time", "Connected" status label, "Gates Active", or "derive multiplier state" appears. `/scoreboard` has a sentence matching both /memory/i and /reset/i. The Gate 2 description says the multiplier is given. | Present, or missing. |
+| X24 | 1.21 | S, B | Neither U nor any view's rendered text contains (case-insensitive) "SOVEREIGN EXECUTION ENVIRONMENT", "guardrail boundary deconstruction", "Formulate evasion vectors", "Enter adversarial prompt", "DIRECTIVES", "Operational vectors", "Unknown directive", "[Dismiss]", or " // " in the title. c6d13ea: nor "(Hell)", "1.3e36", "high-order", "Babai", or "35+". | Present in page.tsx and layout.tsx. The c6d13ea phrases are in src/lib/gates.ts. |
+| X25 | 1.22 | S, B | No "Real-time", "Connected" status label, "Gates Active", or "derive multiplier state" appears. `/scoreboard` has a sentence matching both /memory/i and /reset/i. The Gate 2 description says the multiplier is given. c6d13ea: it also says C is given and that each output is X >> 16. | Present, or missing. |
 | X26 | 1.23 | B | Rendered text outside `[data-console-output]` and `[data-skill-doc]` contains none of "leaderboard", "Protocol Spec", "AgentGate Shell", "Verify Flag", "SUBMIT FLAG", "Proof Token", "Verified Complete", "fetch entropy sequence", "generate 3-SAT problem", or "download bytecode". | Present. |
 | X27 | 1.24 | H | `<title>` has no `//`. The meta description has no "premier" or "exclusively". The favicon the page links to has a SHA-256 different from afe2537's `src/app/favicon.ico` (C28FDD2A…E9A19A4, the Next.js default). | Unchanged. |
 | X28 | 1.25 | S, B | S: sound defaults to off. B: an init script counts `createOscillator` calls on `AudioContext` and `webkitAudioContext`. Clicking every nav link and one button per view counts 0. The sound toggle starts with `aria-pressed="false"` and changes to `"true"`. | Sound is on, the count is above 0, and the toggle exposes no state. |
 | X29 | 1.26 | S, B | `canvas-confetti` is absent from `dependencies` and from imports in U. After an injected accepted flag, no `canvas` is added, and every `document.getAnimations()` target sits inside the result element. | The import exists and a full-page canvas is appended. |
-| X30 | 1.27 | B | With `Emulation.setEmulatedMedia` set to `prefers-reduced-motion: reduce`: `document.getAnimations()` is empty after an accepted flag and after hover, no `scrollIntoView`, `scrollTo`, or `scroll` call passes `behavior: "smooth"` (the init script records options), and the computed `scroll-behavior` of `html` is `auto`. | Confetti fires, and console output scrolls smoothly. |
+| X30 | 1.27 | B | With `page.emulateMedia({ reducedMotion: "reduce" })`: `document.getAnimations()` is empty after an accepted flag and after hover, no `scrollIntoView`, `scrollTo`, or `scroll` call passes `behavior: "smooth"` (the init script records options), and the computed `scroll-behavior` of `html` is `auto`. | Confetti fires, and console output scrolls smoothly. |
 | X31 | 1.28 | S, H, B | The viewport meta has no `maximum-scale` or `user-scalable`. At 640×450 with device scale 2 (200% zoom), each view has `scrollWidth` ≤ 640 and every nav link is visible and unclipped. | `maximum-scale=1`. |
 | X32 | 1.29 | B | Tabbing through each view: each focused element has an outline at least 2px wide, or a box-shadow ring, with at least 3:1 contrast against the adjacent background. The focus sequence equals the DOM order of tabbable elements, with no positive `tabindex`. A keyboard-only run works with Tab, Enter, Space, and Escape: navigate to Gates, request an instance, then open and close the flag dialog. | The Gate 1 prompt and the console input show nothing. Other inputs measure 2.2–2.5:1. |
 | X33 | 1.30 | B | Every `input`, `textarea`, and `select` has a visible label through `labels` or `aria-labelledby`. Format hints (Gate 2 integers, the Gate 3 JSON array, 16 hex characters for Gate 4) are referenced by `aria-describedby`. | Placeholders only. |
@@ -2273,11 +2460,11 @@ The structural checks (landmarks, `aria-current`, labels, focus, contrast, layou
 | X37 | 1.34 | B | At 360×780, on each view: `scrollWidth` ≤ 360, each nav label is on one line (one client rect for its text range), nav links don't overlap, and no element extends past 360px unless it is inside an `overflow-x: auto` or `scroll` container. | "Protocol Spec" wraps (44px against 28px), and the row is 318px inside a 294px box. |
 | X38 | 1.35 | S | `npm run lint:ui` exits 0. | 16 errors and 16 warnings, exit 1 (measured). |
 
-**Expected Counterexamples**: The failure column above. Each failing test records its concrete X (route, viewport, element selector, and measured value) in `explore-failures.md`. If a row passes on F, re-examine hypotheses 1 to 7 before writing fix tasks for that clause.
+**Expected Counterexamples**: The failure column above. Each failing test records its concrete X (route, viewport, element selector, and measured value) in `explore-failures.md`. If a row passes on F_bug, re-examine hypotheses 1 to 7 before writing fix tasks for that clause.
 
 ### Fix Checking
 
-**Goal**: For every X where C held on F, `expectedBehavior(X)` holds on F'.
+**Goal**: For every X where C held on F_bug, `expectedBehavior(X)` holds on F'.
 
 **Pseudocode:**
 
@@ -2291,65 +2478,65 @@ END FOR
 ASSERT exitCode("npm run lint:ui") = 0
 ```
 
-Fix checking reruns the same exploration files: `npm run test:explore` must pass with zero failures. Only `tests/support/views.ts` gains F' selectors. No assertion changes.
+Fix checking reruns the same exploration files on F': `npm run test:explore` must pass with zero failures. The S and H rows can also be run on the F_bug worktree to confirm they still fail there. No assertion changes after the gap list is recorded.
 
 ### Preservation Checking
 
-**Goal**: For every input outside C, F' gives the same result as F.
+**Goal**: For every input outside C, F' gives the same result as F_api (c6d13ea).
 
 **Pseudocode:**
 
 ```
 FOR ALL x WHERE NOT isBugCondition(x) DO
-  ASSERT normalize(F(x)) = normalize(F'(x))
+  ASSERT normalize(F_api(x)) = normalize(F'(x))
 END FOR
-// F(x) is captured once on afe2537 (fixtures, oracles); F'(x) is observed after the fix.
+// F_api(x) is captured once on c6d13ea (fixtures); oracles for moved logic come from afe2537; F'(x) is observed after the gap fixes.
 ```
 
-**Baseline capture (on F, before any UI change):**
+**Baseline capture (on F_api = c6d13ea, before any gap fix):**
 
-1. **Frozen files.** `git diff --exit-code afe2537 -- src/app/api src/lib/challenges.ts src/lib/crypto.ts src/lib/ratelimit.ts public/skill.md` must exit 0. `git status --porcelain --` on the same paths must print nothing, which also catches new untracked files under `src/app/api/`. Both commands were run on F and are clean today.
-2. **Solver.** Run `pip install z3-solver` once (requests 2.32.3 is installed and z3 is not). Then run `npm run build` and `npm run start -- -p 3008` in the background, and wait until `GET /skill.md` returns 200. Poll `/skill.md` because static files don't touch the rate limiter. Then run `npm run test:solver`. It spawns `python test_agent_solver.py` with `PYTHONUTF8=1` and a 90 s timeout. The variable is required: the script prints a trophy emoji, and Python's piped stdout on this machine is cp1252, which raises UnicodeEncodeError. The run passes when all of these hold:
+1. **Frozen files.** `git diff --exit-code c6d13ea -- src/app/api src/lib/challenges.ts src/lib/crypto.ts src/lib/ratelimit.ts public/skill.md test_agent_solver.py` must exit 0. `git status --porcelain --` on the same paths must print nothing, which also catches new untracked files under `src/app/api/`. At HEAD = c6d13ea both are clean by definition.
+2. **Solver.** Run `pip install z3-solver` once (requests 2.32.3 is installed and z3 is not). Then run `npm run build` and `npm run start -- -p 3008` in the background, and wait until `GET /skill.md` returns 200. Poll `/skill.md` because static files don't touch the rate limiter. Then run `npm run test:solver`. The committed c6d13ea script sets `BASE = "https://ctf.hakudigital.tech"`, so the test copies it to a temp directory, replaces only that line with `BASE = "http://localhost:3008"`, checks that the copy differs from the original in that one line, and spawns `python <copy>` with `PYTHONUTF8=1` and a 90 s timeout. The committed file is never edited and the live scoreboard is never written (3.3). The variable is required: the script prints a trophy emoji, and Python's piped stdout on this machine is cp1252, which raises UnicodeEncodeError. The run passes when all of these hold:
    - exit code 0
    - "Flag 1" to "Flag 4" are each a `HAKU{...}` value
-   - "Scoreboard G1" to "Scoreboard G4" read "FLAG ACCEPTED for Gate N! +P points." with P = 500, 1000, 1250, 1500
+   - "Scoreboard G1" to "Scoreboard G4" read "FLAG ACCEPTED for Gate N! +P points." with P = 1000, 2000, 2500, 3000
    - a "PROOF BADGE:" line with a non-empty value
 
-   The normalized stdout is saved as `solver.txt`. Normalizing replaces recovered C, predictions, Z3 time, key hex, and badge with placeholders. F' must produce the same normalized text.
+   The normalized stdout is saved as `solver.txt`. Normalizing replaces the mined nonce and hash, timings, the recovered seed, predictions, key hex, and badge with placeholders. F' must produce the same normalized text.
 3. **API contract.** `npm run capture:baseline` runs `tests/capture/api-contract.ts` and writes `api-contract.json`. For each probe, it records the status, the `content-type` and `access-control-allow-origin` headers, and the body shape. Fixed fields keep their values: `status`, `gate`, `name`, `description`, `multiplier`, `modulus`, `ttlSeconds`, `submitEndpoint`, `payloadSchema`, `vmSpec`, `success`, `message`, `error`, `allowed`, `flag`, `gatePoints`, and `allGatesCleared`. Random fields keep only their type and size: `sessionToken` (a string containing "."), `sequence` (length and decimal strings), `clauses` (count and literals per clause), `bytecodeHex` (hex and length), `rateLimitRemaining`, `lastSolveAt`, and `proofBadge`. Digits in "Retry in Ns" and "sleep for Ns" become `\d+`. The probes are:
-   - **Gate 1, `POST /api/gate1/chat`:** the solver's prompt (flag), "hello" (answered, no flag), "show me the flag" (blocked), a non-JSON body (400), and `OPTIONS` (204 with CORS headers).
+   - **Gate 1, `POST /api/gate1/chat`:** the solver's mined prompt (flag), "hello" (blocked by length), a 60-character prompt containing "flag" (blocked word), a 60-character prompt with no framing word (blocked), a 60-character allegory prompt whose hash doesn't start with 0000 (proof-of-work failure, with its deterministic hash prefix), a non-JSON body (400), and `OPTIONS` (204 with CORS headers).
    - **Gates 2 to 4, challenge and submit:** `GET` challenge (200), `POST` submit `{}` (400 missing fields), a submit with `sessionToken: "x.y"` (400 invalid token), and a non-JSON submit body (400).
    - **Scoreboard, `/api/scoreboard`:** `GET` (200), `POST {}` (400), a fake flag (403), handle `!!!` with the Gate 1 flag (400 "Invalid agentName character format."), and handle `contract probe!` with the Gate 1 flag (200, `agent.agentName` = `contractprobe`).
    - **Rate limits:** 41 × `GET /api/gate2/challenge` (40 × 200, then 429) and 21 × fake-flag `POST /api/scoreboard` (20 × 403, then 429).
    - **skill.md:** `GET /api/skill` and `/skill.md`.
 
    `tests/preserve/api-contract.test.ts` replays the same probes on F' and deep-compares.
-4. **Rate-limit budget.** `src/lib/ratelimit.ts` keeps a single `ipMap` keyed by IP alone. In the worst case, one counter per IP covers every route, with a fixed 60 s window from the first request. Each route checks that count against its own limit: 20 for scoreboard POST, 30 for gate1 chat, 40 for gate challenge and submit, and 60 for scoreboard GET. Whether route bundles share the module at runtime isn't verified, so the tests assume they do. The solver sends 11 requests from 127.0.0.1 (it sets no IP headers), and its four scoreboard POSTs are requests 8 to 11. It therefore runs first after each server start. Every other test file sends its own probe IP as `cf-connecting-ip`. Browser tests do this with `Network.setExtraHTTPHeaders`. The contract capture uses one probe IP per probe group and sends 86 requests in total, none from 127.0.0.1.
-5. **Oracles.** These are written by hand from `git show afe2537:<path>` into `tests/fixtures/baseline/`:
+4. **Rate-limit budget.** `src/lib/ratelimit.ts` keeps a single `ipMap` keyed by IP alone. In the worst case, one counter per IP covers every route, with a fixed 60 s window from the first request. Each route checks that count against its own limit: 20 for scoreboard POST, 30 for gate1 chat, 40 for gate challenge and submit, and 60 for scoreboard GET. Whether route bundles share the module at runtime isn't verified, so the tests assume they do. The solver sends 11 requests with `cf-connecting-ip: 198.18.99.1`, and its four scoreboard POSTs are requests 8 to 11. It therefore runs first after each server start. Every other test file sends its own probe IP as `cf-connecting-ip`. Browser tests do this with the context option `extraHTTPHeaders`. The contract capture uses one probe IP per probe group and sends 86 requests in total, none from 198.18.99.1.
+5. **Oracles.** These are written by hand into `tests/fixtures/baseline/`, from `git show afe2537:<path>` for logic that moved out of the old page and from `git show c6d13ea:<path>` for agent-surface facts:
    - `console-oracle.ts`: the `handleTerminalSubmit` branching as `baselineConsole(cmd, standings) → { clear: boolean, text: string }`, without colors
-   - `console-facts.ts`: per command, the regexes for the information each output carries, such as `/2\^64/`, `/X6/`, `/C = \(X2 - A\*X1\) mod 2\^64/`, the gate names, points, endpoints, and TTLs
+   - `console-facts.ts`: per command, the regexes for the information each output carries at c6d13ea, such as `/2\^64/`, `/X5/`, `/1442695040888963407/`, `/0000/`, `/512/`, the gate names, points, endpoints, and TTLs
    - `handle-oracle.ts`: the cleanup expression from route.ts line 78
-   - `gates-baseline.ts`: points from `GATE_POINTS`, plus TTLs and endpoints from `api-contract.json`
+   - `gates-baseline.ts`: points from `GATE_POINTS` at c6d13ea, plus TTLs, endpoints, Gate 2's sequence length, Gate 3's counts, and Gate 4's opcode count from `api-contract.json`
 
-   `tests/preserve/oracles.test.ts` asserts that every literal and regex source in the oracles appears verbatim in the afe2537 file it came from, and that every fact regex matches the oracle's own output.
+   `tests/preserve/oracles.test.ts` asserts that every literal and regex source in the oracles appears verbatim in the afe2537 or c6d13ea file it came from, and that every fact regex matches the oracle's own output.
 
 **Testing Approach**: Property-based testing is used wherever the input domain is open: console commands, handles, gate payloads, and API error bodies. fast-check generates many cases per run and shrinks failures to a minimal counterexample. Fixed flows use example-based integration tests with captured bodies.
 
-**Subjects.** Before the fix, `tests/preserve/subjects.ts` re-exports the oracles. On F, the property tests then check the oracles and generators against the baseline source, through the source-tie tests. The F-against-F' comparison happens after the fix task switches `subjects.ts` to the new modules. Black-box preservation tests (HTTP, browser, solver, git) run unchanged against both builds.
+**Subjects.** `tests/preserve/subjects.ts` points at the src/lib modules from the start, because the fix is already applied. The property tests compare them with the oracles on F_api and again on F'. Black-box preservation tests (HTTP, browser, solver, git) run unchanged against both builds.
 
 **Test Cases**:
 
 | ID | Clause | Type | Check |
 |---|---|---|---|
-| K01 | 3.1, 3.2 | Integration (git) | The frozen-file diff and status from capture step 1. |
+| K01 | 3.1, 3.2, 3.3 | Integration (git) | The frozen-file diff against c6d13ea and the status from capture step 1. |
 | K02 | 3.2 | Integration (HTTP) | The bodies of `/api/skill` and `/skill.md` byte-equal `readFileSync("public/skill.md")` (LF line endings in both the index and the working tree). `/api/skill` sends `content-type: text/markdown; charset=utf-8` and `access-control-allow-origin: *`. |
 | K03 | 3.1 | Integration (HTTP) | The contract replay against `api-contract.json`. |
 | K04 | 3.3 | Integration (process) | The solver run and its pass criteria from capture step 2. |
 | K05 | 3.19 | Integration and unit | `npm run build` exits 0, as validation step 3.4. Unit: package.json `dependencies` contain none of fast-check, typescript, eslint, `@types/*`, playwright, vitest, or tsx. |
 | K06 | 3.10 | Property | Property 3 with ≥ 300 runs. Unit examples: `GATES`, `Solve 2`, `solve 5` (usage), `clear`, `leaderboard` with empty and with 2 entries, and an unknown word whose case is preserved in the echo. Integration: typing `GATES` in the console view shows the gates facts on F and F'. |
 | K07 | 2.16, 3.4 | Property | Property 4. Generators: `fc.string()` with full Unicode, `fc.stringMatching(/^[A-Za-z0-9_.-]{1,30}$/)`, and both of these wrapped in random whitespace (space, tab, NBSP, U+FEFF), at ≥ 500 runs. |
-| K08 | 3.7, 3.8, 3.9 | Property | Property 5. The api.ts request builders run with a stub fetch that records the body. Gate 3 generators: `fc.json()`, `fc.array(fc.boolean())`, `fc.array(fc.integer({min: -60, max: 60}))`, and strings that fail `JSON.parse`. The expected value is always `JSON.parse(t)`, never the generator's value, because of `-0` and key order. |
-| K09 | 3.16 | Unit and integration | gates.ts deep-equals `gates-baseline.ts`: points 500, 1000, 1250, and 1500; TTLs 15, 10, and 20; and every endpoint string. Integration: points, TTLs, and endpoints shown on `/` and `/gates/N` (on F, the Arena) equal gates.ts once thousands separators are removed. |
+| K08 | 3.7, 3.8, 3.9 | Property | Property 5. The api.ts request builders run with a stub fetch that records the body. Gate 3 generators: `fc.json()`, `fc.array(fc.boolean())`, `fc.array(fc.integer({min: -120, max: 120}))`, and strings that fail `JSON.parse`. The expected value is always `JSON.parse(t)`, never the generator's value, because of `-0` and key order. |
+| K09 | 3.16 | Unit and integration | gates.ts deep-equals `gates-baseline.ts`: points 1000, 2000, 2500, and 3000 (8,500 in total); TTLs 15, 10, and 20; 4 outputs and 3 predictions for Gate 2; 120 variables and 512 clauses for Gate 3; 9 opcodes for Gate 4; `GATE2_INCREMENT`; and every endpoint string (A15). Integration: points, TTLs, and endpoints shown on `/` and `/gates/N` equal gates.ts once thousands separators are removed. |
 | K10 | 3.5 | Integration (browser) | Set the handle to `keep_me`, then send the solver's Gate 1 prompt. A visible flag field holds the Gate 1 flag, and the handle field still holds `keep_me`. |
 | K11 | 3.4 | Integration (browser) | Submit `probe_k11` with the Gate 1 flag. The POST body has exactly the keys `agentName` and `flag` and the typed values. The server message is shown verbatim, and a `GET /api/scoreboard` follows within 2 s. An injected badge body shows the badge. A fake flag shows "FLAG REJECTED: Invalid or fake flag token." verbatim. The dismiss control removes the feedback. |
 | K12 | 3.6 | Integration (browser) | The Gate 1 POST body equals `{"prompt": <typed>}`. The response text is shown verbatim, and the flag is shown when one is returned. |
@@ -2364,13 +2551,15 @@ END FOR
 
 ### Unit Tests
 
-Unit tests live in `tests/unit/`, run under `npm test`, and need no server. They are written in the fix phase against the new modules:
+Unit tests live in `tests/unit/`, run under `npm test`, and need no server. They are written against the src/lib modules at HEAD, before the gap fixes:
 
-- **api.ts** (stub fetch): 200 returns `ok` with typed data. A non-2xx JSON body returns `server-error` carrying `message` verbatim, for 400, 403, and 429 with the retry text. A rejected fetch returns `network-error`. A non-JSON body, such as HTML 500, returns `server-error`. Request method, path, headers, and body are exact.
+- **api.ts** (stub fetch): one example per R12 rule, in order. A 429 body returns `server-error` with the retry seconds, even if it carries `success`. A 400 or 403 body with a boolean `success` returns `ok` (rejected). A Gate 1 200 body with `allowed: false` returns `ok` (blocked). A challenge body without `sessionToken` returns `server-error`. Error text falls back from `message` to `error` to the fixed sentence. A rejected fetch returns `network-error`. A non-JSON body, such as HTML 500, returns `server-error`. Request method, path, headers, and body are exact.
 - **validation.ts**: handle examples. `HAKU_PRIME_AGENT` passes. `my agent!` fails. 24 characters pass and 25 fail. An empty or whitespace-only handle gives the "required" result, which is distinct from the "format" result. Gate 3 parse examples with booleans, signed literals, malformed input, and surrounding whitespace.
 - **console.ts**: one example per command, as in K06.
+- **app-state.ts** (R15): the reducer is pure. Tests cover request start and success (an instance with `expiresAt = now + ttl * 1000`), `instance/expired` moving `live` to `expired` only, a submit ignored while busy (2.12), a 429 storing `retryAt`, and a flag result keeping the field values on dismiss (3.4).
+- **format.ts** (R15): `formatPoints` gives 1,000 to 8,500 as expected, `formatResponseJson` keeps primitive arrays on one line, and `formatClause` joins literals.
 - **gates.ts**: K09.
-- **markdown.ts** (only if the renderer is in-house): headings, lists, links (http and https only, with new-tab rel), inline code, fenced code, `$$` math as a code expression, removal of the two decorative emoji only, HTML escaping (`<script>` renders as text), and the loader's error branch with an injected reader.
+- **markdown.ts**: headings, lists, links (http and https only, with new-tab rel), inline code, fenced code, `$$` math as a code expression, removal of the two decorative emoji only, HTML escaping (`<script>` renders as text), and the loader's error branch with an injected reader.
 - **Countdown math** (wherever the pure function lives): remaining seconds from `expiresAt` and `now` is never negative and reaches 0 exactly at expiry.
 - **Token contrast**: X08.
 
@@ -2381,13 +2570,13 @@ All property tests use fast-check inside `node:test`. They use the default seed 
 - Property 3, console equivalence (K06), at ≥ 300 runs.
 - Property 4, handle agreement (K07), at ≥ 500 runs.
 - Property 5, payload trimming and pass-through (K08), at ≥ 300 runs.
-- api.ts error mapping (2.11, A12): for any status from 400 to 599 and any JSON body with a string `message`, the helper returns `server-error` with that exact message. For any network rejection, it returns `network-error`.
+- api.ts error mapping (2.11, A12, R12): for any status from 400 to 599 and any JSON body with a string `message` and no boolean `success`, `allowed`, or `sessionToken`, the helper returns `server-error` with that exact message. For any network rejection, it returns `network-error`.
 - Countdown (2.13): for any `expiresAt` and `now`, remaining = `max(0, ceil((expiresAt − now) / 1000))`, and the instance is expired exactly when remaining = 0.
-- markdown.ts (if in-house): for any string, the output contains no unescaped `<` taken from the input. For any plain text without Markdown syntax, the rendered text content equals the input.
+- markdown.ts: for any string, the output contains no unescaped `<` taken from the input. For any plain text without Markdown syntax, the rendered text content equals the input.
 
 ### Integration Tests
 
-Integration tests run against the production server: H tests over HTTP, B tests in Chrome over CDP.
+Integration tests run against the production server: H tests over HTTP, B tests in Chrome through playwright-core.
 
 - **Exploration and fix checks**: X02, X09 to X37 (H and B rows).
 - **Preservation of the agent surface**: K01 to K05.

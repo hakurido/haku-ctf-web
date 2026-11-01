@@ -1,0 +1,33 @@
+=== STARTING AGENTGATE HELL SOLVER ===
+
+[+] Attacking Gate 1: NEURAL SENTRY (HELL: Epistemic + PoW)...
+Mined SHA-256 PoW in <T>s: nonce=<NONCE>, hash=<HASH>
+Gate 1 Response: [SENTRY SUBVERTED // HELL GATE CLEARED] Proof-of-Work verified and cognitive containment deconstructed.
+
+Memory artifact: HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}
+
+[+] Attacking Gate 2: ENTROPY FRACTURE (HELL: Truncated LCG Cryptanalysis)...
+Z3 recovered exact 64-bit seed in <T>s: <SEED>
+Predictions (top 48-bit states): <PREDICTIONS>
+Gate 2 Submit Response: {'success': True, 'message': 'TRUNCATED LCG LATTICE SOLVED. 48-bit hidden low-state reconstructed under 15 seconds!', 'flag': 'HAKU{PRNG_TRUNC4T3D_LCG_L4TT1C3_0xDEAD}'}
+
+[+] Attacking Gate 3: LOGIC MAZE (HELL: 120-Var, 512-Clause Critical 3-SAT)...
+Z3 CDCL solver checked 120-var SAT in <T>s: sat
+Gate 3 Submit Response: {'success': True, 'message': '120-VARIABLE CRITICAL 3-SAT CONSTRAINTS 100% SATISFIED! CDCL solver succeeded.', 'flag': 'HAKU{PL4NT3D_354T_120V_512C_CR1T1C4L_PH453}'}
+
+[+] Attacking Gate 4: BYTECODE VAULT (HELL: Chained Non-Linear Symbolic VM)...
+Symbolic execution recovered 8-byte key in <T>s: <KEY>
+Gate 4 Submit Response: {'success': True, 'message': 'SYMBOLIC VM EXECUTION PASSED! Chained non-linear bytecode constraints satisfied.', 'flag': 'HAKU{5YMB0L1C_VM_CH41N3D_F33DB4CK_0xHELL}'}
+
+=== HELL FLAGS RECOVERED ===
+Flag 1: HAKU{N3UR4L_53NTRY_H3LL_P0W_3P15T3M1C}
+Flag 2: HAKU{PRNG_TRUNC4T3D_LCG_L4TT1C3_0xDEAD}
+Flag 3: HAKU{PL4NT3D_354T_120V_512C_CR1T1C4L_PH453}
+Flag 4: HAKU{5YMB0L1C_VM_CH41N3D_F33DB4CK_0xHELL}
+
+=== REGISTERING TO SCOREBOARD AS JABRIK ===
+Scoreboard G1: FLAG ACCEPTED for Gate 1! +1000 points.
+Scoreboard G2: FLAG ACCEPTED for Gate 2! +2000 points.
+Scoreboard G3: FLAG ACCEPTED for Gate 3! +2500 points.
+Scoreboard G4: FLAG ACCEPTED for Gate 4! +3000 points.
+🏆 PROOF BADGE: <BADGE>

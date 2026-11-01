@@ -1,0 +1,334 @@
+{
+  "pbtResults": {
+    "2.1 Write source/static exploration tests": {
+      "status": "passed",
+      "failingExample": "On HEAD c6d13ea, 12 of 18 tests fail as expected. Counterexamples: X38 `npm run lint:ui` exit 1 (24 errors, 0 warnings, 9 files). M-18 found 3 matches: layout.tsx:39 themeColor \"#111315\" and SkillDocument.tsx:12/14 text-[0.8em]. X03 found layout.tsx:39 \"#111315\". X24 found \"directives\" at console/page.tsx:6 and ConsoleView.tsx:30. Literal scans: \"(Hell)\" in gates.ts:36/61/96/131, \"1.3e36\" at gates.ts:102, \"high-order\" at gates.ts:42, \"Babai\" at gates.ts:67, \"35+\" at gates.ts:40, and \"60 booleans\" at Gate3Instance.tsx:60. A14: the names end in \"(Hell)\" and no difficulty \"Hell\" is declared. X25: the Gate 2 description doesn't say A or C is given. Pass as regression guards (already fixed in 2516aa1): X01, X05, X24 title separator, X25 status phrases, X28, X29.",
+      "lastRunTimestamp": 1793502469210
+    },
+    "3.1 Write agent-surface preservation tests (HTTP contract + solver copy)": {
+      "status": "passed",
+      "lastRunTimestamp": 1793504109831
+    },
+    "2.3 Write browser flow and request exploration tests": {
+      "status": "passed",
+      "failingExample": "Exploration tests failed on HEAD c6d13ea as expected (17 of 42 fail; 25 regression guards pass). Counterexamples: M-01 /scoreboard sent 398 GET /api/scoreboard in 3 s (60x200, 337x429), expected 1; Refresh added 368 GETs, expected 1; /console with 429 sent 884 GETs in 3 s, expected <=1. X21/R-09: 429 or network failure shows \"No entries yet.\" and no error message. X12/M-05: 7-var Gate 3 hint still says \"Either 60 booleans\"; M-04: modulus 18446744073709551616 missing from Gate 2. X14/R-25: label \"Rate limited\", not \"Rate limited (HTTP 429)\". X16/R-24: expiry announced 2x after Overview and back; R1: Gate 3 ttl 4 shows \"Expiring, 4 s left\". X19/R-36: handle warning sets aria-invalid=\"true\". R-35: dialog closes after the second accepted submission (badge not shown). X15/R-42 and X35: busy controls drop focus to body. X35/R-41: StatusMessage inserts new role=status regions. X35/R-37: dialog result announced only to the inert outside Announcer. Details: tests/fixtures/explore-failures/flows.md",
+      "lastRunTimestamp": 1793504409093
+    },
+    "3.2 Write visitor-flow, passing-list, and property preservation tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1793505771753
+    }
+  },
+  "executionHistory": {
+    "1. Set up test tooling, support helpers, and the HEAD build": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500053931
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500067840
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793501806539
+      }
+    ],
+    "2.1 Write source/static exploration tests": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054041
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793501816456
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505861343
+      }
+    ],
+    "2.2 Write browser layout and accessibility exploration tests": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054171
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793501826390
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505861526
+      }
+    ],
+    "2.3 Write browser flow and request exploration tests": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054259
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793501826542
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505861459
+      }
+    ],
+    "3.1 Write agent-surface preservation tests (HTTP contract + solver copy)": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054344
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793501827594
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505861660
+      }
+    ],
+    "3.2 Write visitor-flow, passing-list, and property preservation tests": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054420
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793501828508
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505861726
+      }
+    ],
+    "4.1 Fix the state layer (provider and reducer)": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054506
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505895314
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508143647
+      }
+    ],
+    "4.2 Fix the library modules (api, validation, format, gates)": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054588
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505895408
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508143805
+      }
+    ],
+    "4.3 Fix the UI primitives": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054682
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505895550
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508143874
+      }
+    ],
+    "4.4 Fix the shell and metadata": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054754
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505895638
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508143958
+      }
+    ],
+    "4.5 Fix the docs renderer": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054829
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793505895809
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508144050
+      }
+    ],
+    "4.6 Fix the try-it panels": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054901
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508150758
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508250530
+      }
+    ],
+    "4.7 Fix the instance views": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500054971
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508151503
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508251528
+      }
+    ],
+    "4.8 Fix the gate page shell": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500055070
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508152508
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508252482
+      }
+    ],
+    "4.9 Fix the flag form and dialog": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500055208
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508153515
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508253474
+      }
+    ],
+    "4.10 Fix the scoreboard view": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500055362
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508154136
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508254496
+      }
+    ],
+    "4.11 Fix the console": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500055444
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508255474
+      }
+    ],
+    "4.12 Fix the overview": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500055533
+      },
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793508256031
+      }
+    ],
+    "5. Verify the fix against the exploration and preservation suites": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500055630
+      }
+    ],
+    "6. Full validation checkpoint": [
+      {
+        "executionId": "50021605-c29d-4bed-b613-7d6020a74457",
+        "chatSessionId": "sess_c6d8e9eb-ba08-4b78-96ab-be52e93c2a26",
+        "timestamp": 1793500055721
+      }
+    ]
+  }
+}

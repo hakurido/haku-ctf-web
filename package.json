@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:ui": "eslint src --max-warnings 0 --ignore-pattern \"src/app/api/**\" --ignore-pattern src/lib/challenges.ts --ignore-pattern src/lib/crypto.ts --ignore-pattern src/lib/ratelimit.ts",
+    "typecheck:tests": "tsc -p tests/tsconfig.json",
+    "test": "node --test \"tests/unit/**/*.test.ts\"",
+    "test:explore": "node --test --test-concurrency=1 \"tests/explore/**/*.test.ts\"",
+    "test:preserve": "node --test --test-concurrency=1 \"tests/preserve/**/*.test.ts\"",
+    "test:solver": "node --test tests/solver/solver.test.ts",
+    "capture:baseline": "node tests/capture/api-contract.ts"
   },
   "dependencies": {
     "lucide-react": "^1.66.0",
@@ -21,6 +28,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "fast-check": "^4.10.2",
+    "playwright-core": "^1.64.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

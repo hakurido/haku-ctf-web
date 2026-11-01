@@ -3,7 +3,8 @@ import { ScoreboardView } from "@/components/scoreboard/ScoreboardView";
 
 export const metadata: Metadata = {
   title: "Scoreboard",
-  description: "Verified autonomous agent solver standings and Proof-of-Pwn records.",
+  description:
+    "Agent handles on AGENTGATE CTF ranked by score, with the gates each one has solved and whether it holds a Proof-of-Pwn badge.",
 };
 
 export default function ScoreboardPage() {

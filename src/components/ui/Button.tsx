@@ -1,11 +1,47 @@
 import React from "react";
 import { LoaderCircle } from "lucide-react";
 
+export type ButtonVariant = "primary" | "secondary" | "ghost";
+
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost";
+  /** "ghost" is the design's quiet button. */
+  variant?: ButtonVariant;
   size?: "md" | "sm";
+  /**
+   * A request is running. The button keeps focus and its normal colors, sets
+   * aria-disabled="true" and data-busy, and ignores activation. Use `disabled`
+   * only for controls that are unavailable.
+   */
   busy?: boolean;
   children: React.ReactNode;
+}
+
+const BASE =
+  "relative inline-flex items-center justify-center rounded-md text-ui font-medium select-none transition-colors duration-120 ease-standard data-busy:cursor-progress";
+
+const SIZE: Record<NonNullable<ButtonProps["size"]>, string> = {
+  md: "h-9 px-4 gap-2",
+  sm: "h-8 px-3 gap-1.5",
+};
+
+const UNAVAILABLE =
+  "disabled:bg-surface-hover disabled:text-fg-disabled disabled:border disabled:border-line disabled:cursor-not-allowed";
+
+// The data-busy:* resets keep the default colors on hover and press, so a busy
+// control doesn't look clickable or unavailable.
+const VARIANT: Record<ButtonVariant, string> = {
+  primary: `bg-accent text-on-accent hover:bg-accent-hover active:bg-accent-active data-busy:hover:bg-accent data-busy:active:bg-accent ${UNAVAILABLE}`,
+  secondary: `bg-surface text-fg border border-line-control hover:bg-surface-hover hover:border-fg-muted active:bg-inset data-busy:hover:bg-surface data-busy:hover:border-line-control data-busy:active:bg-surface ${UNAVAILABLE}`,
+  ghost:
+    "bg-transparent text-fg-secondary hover:bg-surface-hover hover:text-fg active:bg-line active:text-fg data-busy:hover:bg-transparent data-busy:hover:text-fg-secondary data-busy:active:bg-transparent data-busy:active:text-fg-secondary disabled:text-fg-disabled disabled:bg-transparent disabled:cursor-not-allowed",
+};
+
+/**
+ * Used as the click handler while busy. Enter, Space, and implicit form
+ * submission all dispatch a click, so cancelling it also stops a submit.
+ */
+function ignoreActivation(event: React.MouseEvent<HTMLButtonElement>) {
+  event.preventDefault();
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -17,39 +53,28 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       className = "",
       children,
+      onClick,
       ...props
     },
     ref
   ) => {
-    const baseClasses =
-      "inline-flex items-center justify-center font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus select-none";
-
-    const sizeClasses =
-      size === "sm" ? "h-8 px-3 text-caption gap-1.5" : "h-9 px-4 text-ui gap-2";
-
-    let variantClasses = "";
-    if (variant === "primary") {
-      variantClasses =
-        "bg-accent text-on-accent hover:bg-accent-hover active:bg-accent-active disabled:bg-surface-hover disabled:text-fg-disabled disabled:border disabled:border-line disabled:cursor-not-allowed";
-    } else if (variant === "secondary") {
-      variantClasses =
-        "bg-surface text-fg border border-line-control hover:bg-surface-hover hover:border-fg-muted active:bg-inset disabled:bg-surface-hover disabled:text-fg-disabled disabled:border-line disabled:cursor-not-allowed";
-    } else if (variant === "ghost") {
-      variantClasses =
-        "bg-transparent text-fg-secondary hover:bg-surface-hover hover:text-fg active:bg-line active:text-fg disabled:text-fg-disabled disabled:bg-transparent disabled:cursor-not-allowed";
-    }
-
     return (
       <button
         ref={ref}
-        disabled={disabled || busy}
-        data-busy={busy ? "" : undefined}
-        className={`${baseClasses} ${sizeClasses} ${variantClasses} ${
-          busy ? "cursor-progress" : ""
-        } ${className}`}
         {...props}
+        data-variant={variant}
+        data-busy={busy ? "" : undefined}
+        aria-disabled={busy ? "true" : props["aria-disabled"]}
+        disabled={busy ? false : disabled}
+        onClick={busy ? ignoreActivation : onClick}
+        className={`${BASE} ${SIZE[size]} ${VARIANT[variant]} ${className}`}
       >
-        {busy && <LoaderCircle className="size-4 animate-spin text-current shrink-0" />}
+        {busy && (
+          <LoaderCircle
+            className="size-4 shrink-0 text-current motion-safe:animate-spin"
+            aria-hidden="true"
+          />
+        )}
         {children}
       </button>
     );

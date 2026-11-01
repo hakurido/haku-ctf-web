@@ -1,95 +1,94 @@
 import React from "react";
-import { GateMeta, absoluteUrl } from "@/lib/gates";
+import { DIFFICULTY, type GateMeta, absoluteUrl } from "@/lib/gates";
 import { formatPoints } from "@/lib/format";
 import { CopyButton } from "../ui/CopyButton";
+
+const TAG = "text-ui font-medium px-2 py-0.5 rounded-sm border";
 
 export function GateReference({ gate }: { gate: GateMeta }) {
   const ttlNote = gate.ttlSeconds
     ? `Instances expire after ${gate.ttlSeconds} s, which is sized for an agent calling the API. Use the try-it area below to request a live instance and inspect what the API returns.`
-    : "Gate 1 has no instance and no TTL. Each prompt is checked on its own, so you can try it from this page.";
+    : "Gate 1 has no instance and no TTL. Each prompt is checked on its own. A prompt typed here passes only if its SHA-256 hash starts with 0000, so this area is mostly for seeing how the server answers.";
 
   return (
     <div className="space-y-6 mb-8">
       <div>
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <span className="font-mono text-caption font-semibold px-2 py-0.5 rounded-sm bg-surface-hover border border-line-control text-fg">
-            {gate.topic}
-          </span>
-          <span className="font-mono text-caption text-accent font-medium">
-            {formatPoints(gate.points)} points
-          </span>
-          {gate.ttlSeconds && (
-            <span className="font-mono text-caption text-fg-muted">
-              Instance TTL: {gate.ttlSeconds} s
-            </span>
-          )}
-        </div>
-        <p className="text-body text-fg leading-relaxed">
-          {gate.description}
-        </p>
-        <p className="text-caption text-fg-muted mt-2">
-          {ttlNote}
-        </p>
+        <ul aria-label="Gate details" className="flex flex-wrap items-center gap-2 mb-3">
+          <li className={`${TAG} bg-surface-hover border-line-control text-fg`}>{gate.topic}</li>
+          <li className={`${TAG} border-line text-accent`}>{formatPoints(gate.points)} points</li>
+          <li className={`${TAG} border-line text-fg-secondary`}>
+            {gate.ttlSeconds ? `Instance TTL: ${gate.ttlSeconds} s` : "No TTL"}
+          </li>
+          <li className={`${TAG} border-line text-fg-secondary`}>Difficulty: {DIFFICULTY}</li>
+        </ul>
+        <p className="text-body text-fg leading-relaxed">{gate.description}</p>
+        <p className="text-ui text-fg-muted mt-2">{ttlNote}</p>
       </div>
 
-      <div className="space-y-3">
-        <h3 className="text-title font-semibold text-fg">Endpoints</h3>
-        <div className="space-y-2">
+      <section aria-labelledby="endpoints-heading" className="space-y-3">
+        <h2 id="endpoints-heading" className="text-heading font-semibold text-fg">
+          Endpoints
+        </h2>
+        <ul className="space-y-2">
           {gate.endpoints.map((ep) => {
             const fullUrl = absoluteUrl(ep.path);
             return (
-              <div
+              <li
                 key={ep.path}
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-md border border-line bg-surface"
               >
-                <div className="flex items-center gap-2.5 font-mono text-code text-fg flex-wrap min-w-0">
-                  <span className="h-5 px-1.5 inline-flex items-center rounded-sm bg-surface-hover text-code-sm font-semibold text-fg">
-                    {ep.method}
-                  </span>
-                  <span className="break-all">{ep.path}</span>
-                  <span className="text-caption text-fg-muted font-sans hidden md:inline">
-                    · {ep.purpose}
-                  </span>
+                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                  <code className="font-mono text-code text-fg flex items-center gap-2.5 flex-wrap min-w-0">
+                    <span className="h-5 px-1.5 inline-flex items-center rounded-sm bg-surface-hover font-semibold">
+                      {ep.method}
+                    </span>
+                    <span className="break-all">{ep.path}</span>
+                  </code>
+                  <span className="text-ui text-fg-muted">{ep.purpose}</span>
                 </div>
                 <div className="shrink-0">
-                  <CopyButton value={fullUrl} label={`${ep.method} ${ep.path}`} />
+                  <CopyButton value={fullUrl} label={`URL for ${ep.method} ${ep.path}`} />
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ul>
+        <p className="text-ui text-fg-muted">
+          The API limits requests per IP address. When the limit is hit, it returns HTTP 429 with
+          the wait time.
+        </p>
+      </section>
 
       {gate.requestFields.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-title font-semibold text-fg">Request Payload</h3>
+        <section aria-labelledby="request-body-heading" className="space-y-3">
+          <h2 id="request-body-heading" className="text-heading font-semibold text-fg">
+            Request body
+          </h2>
           <div className="overflow-x-auto rounded-lg border border-line">
-            <table className="w-full text-left text-ui">
+            <table aria-labelledby="request-body-heading" className="w-full text-left text-ui">
               <thead className="bg-surface border-b border-line">
-                <tr className="text-caption uppercase tracking-label text-fg-muted font-medium">
-                  <th className="py-2 px-4">Field</th>
-                  <th className="py-2 px-4">Type</th>
-                  <th className="py-2 px-4">Notes</th>
+                <tr className="text-ui text-fg-muted font-medium">
+                  <th scope="col" className="py-2 px-4 font-medium">Field</th>
+                  <th scope="col" className="py-2 px-4 font-medium">Type</th>
+                  <th scope="col" className="py-2 px-4 font-medium">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line bg-canvas">
                 {gate.requestFields.map((f) => (
                   <tr key={f.name}>
-                    <td className="py-2.5 px-4 font-mono text-code text-fg font-medium">
-                      {f.name}
+                    <td className="py-2.5 px-4">
+                      <code className="font-mono text-code text-fg font-medium">{f.name}</code>
                     </td>
-                    <td className="py-2.5 px-4 font-mono text-code-sm text-fg-secondary">
-                      {f.type}
+                    <td className="py-2.5 px-4">
+                      <code className="font-mono text-code text-fg-secondary">{f.type}</code>
                     </td>
-                    <td className="py-2.5 px-4 text-ui text-fg-secondary">
-                      {f.notes}
-                    </td>
+                    <td className="py-2.5 px-4 text-ui text-fg-secondary">{f.notes}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

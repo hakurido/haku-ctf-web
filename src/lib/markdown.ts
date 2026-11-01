@@ -22,9 +22,15 @@ export type MathNode =
 
 const seenIds = new Map<string, number>();
 
+/**
+ * A leading run of pictographic emoji (with the U+FE0F variation selector and
+ * U+200D joiners) plus the whitespace after it. `\p{Emoji}` is not used because
+ * it also matches the digits, `#`, and `*`.
+ */
+const LEADING_EMOJI = /^[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u;
+
 export function slugify(text: string): string {
-  // Strip leading emoji
-  const stripped = text.replace(/^[\p{Emoji}\p{Extended_Pictographic}\u200d]+\s*/u, "");
+  const stripped = text.replace(LEADING_EMOJI, "");
   // NFKD normalization and lowercase
   let slug = stripped
     .normalize("NFKD")
@@ -109,6 +115,16 @@ function parseInlines(text: string): Inline[] {
   return inlines;
 }
 
+/** Drops a leading emoji from the first text inline, so the heading never renders it (A8). */
+function stripLeadingEmoji(inlines: Inline[]): Inline[] {
+  const first = inlines[0];
+  if (!first || first.type !== "text") return inlines;
+  const value = first.value.replace(LEADING_EMOJI, "");
+  if (value === first.value) return inlines;
+  const rest = inlines.slice(1);
+  return value ? [{ type: "text", value }, ...rest] : rest;
+}
+
 function extractHeadingText(children: Inline[]): string {
   return children
     .map((c) => {
@@ -171,7 +187,7 @@ export function parseMarkdown(source: string): Block[] {
       const hashes = headingMatch[1].length;
       const level = (hashes + 1) as 2 | 3 | 4;
       const rawText = headingMatch[2].trim();
-      const inlines = parseInlines(rawText);
+      const inlines = stripLeadingEmoji(parseInlines(rawText));
       const plainText = extractHeadingText(inlines);
       const id = slugify(plainText);
       blocks.push({
@@ -259,114 +275,123 @@ export function parseMarkdown(source: string): Block[] {
   return blocks;
 }
 
-export function texToNodes(tex: string): MathNode[] | null {
-  const nodes: MathNode[] = [];
-  let s = tex.trim();
+/** TeX symbol commands the renderer typesets, with the text each one prints. */
+const TEX_SYMBOLS = new Map<string, string>([
+  ["cdot", " · "],
+  ["times", " × "],
+  ["gg", " ≫ "],
+]);
 
-  // Basic TeX subset parser:
-  // e.g. X_{n+1} = (A \cdot X_n + C) \pmod{2^{64}}
-  try {
-    let idx = 0;
-    while (idx < s.length) {
-      if (s[idx] === " ") {
-        nodes.push({ type: "text", value: " " });
-        idx++;
-        continue;
-      }
-      if (s.startsWith("\\cdot", idx)) {
-        nodes.push({ type: "text", value: " · " });
-        idx += 5;
-        continue;
-      }
-      if (s.startsWith("\\pmod", idx)) {
-        idx += 5;
-        while (s[idx] === " ") idx++;
-        if (s[idx] === "{") {
-          let depth = 1;
-          let end = idx + 1;
-          while (end < s.length && depth > 0) {
-            if (s[end] === "{") depth++;
-            if (s[end] === "}") depth--;
-            end++;
-          }
-          const inside = s.slice(idx + 1, end - 1);
-          const subNodes = texToNodes(inside);
-          nodes.push({ type: "text", value: " mod " });
-          if (subNodes) nodes.push(...subNodes);
-          idx = end;
-          continue;
-        }
-      }
-      if (s[idx] === "_") {
-        idx++;
-        if (s[idx] === "{") {
-          let depth = 1;
-          let end = idx + 1;
-          while (end < s.length && depth > 0) {
-            if (s[end] === "{") depth++;
-            if (s[end] === "}") depth--;
-            end++;
-          }
-          const inside = s.slice(idx + 1, end - 1);
-          const subNodes = texToNodes(inside);
-          if (subNodes) nodes.push({ type: "sub", children: subNodes });
-          idx = end;
-          continue;
-        } else {
-          const char = s[idx++];
-          const charNode: MathNode = /^[a-zA-Z]$/.test(char)
-            ? { type: "var", name: char }
-            : { type: "text", value: char };
-          nodes.push({ type: "sub", children: [charNode] });
-          continue;
-        }
-      }
-      if (s[idx] === "^") {
-        idx++;
-        if (s[idx] === "{") {
-          let depth = 1;
-          let end = idx + 1;
-          while (end < s.length && depth > 0) {
-            if (s[end] === "{") depth++;
-            if (s[end] === "}") depth--;
-            end++;
-          }
-          const inside = s.slice(idx + 1, end - 1);
-          const supNodes = texToNodes(inside);
-          if (supNodes) nodes.push({ type: "sup", children: supNodes });
-          idx = end;
-          continue;
-        } else {
-          const char = s[idx++];
-          const charNode: MathNode = /^[a-zA-Z]$/.test(char)
-            ? { type: "var", name: char }
-            : { type: "text", value: char };
-          nodes.push({ type: "sup", children: [charNode] });
-          continue;
-        }
-      }
-      if (/^[a-zA-Z]$/.test(s[idx])) {
-        nodes.push({ type: "var", name: s[idx] });
-        idx++;
-        continue;
-      }
-      nodes.push({ type: "text", value: s[idx] });
-      idx++;
+/** How each typeset symbol is read aloud. */
+const SPOKEN_SYMBOLS = new Map<string, string>([
+  ["·", " times "],
+  ["×", " times "],
+  ["≫", " shifted right by "],
+]);
+
+/** The `{…}` group opening at `open`, or null when `open` isn't `{` or the group never closes. */
+function readGroup(s: string, open: number): { inside: string; end: number } | null {
+  if (s[open] !== "{") return null;
+  let depth = 0;
+  for (let i = open; i < s.length; i++) {
+    if (s[i] === "{") depth++;
+    else if (s[i] === "}") {
+      depth--;
+      if (depth === 0) return { inside: s.slice(open + 1, i), end: i + 1 };
     }
-    return nodes;
-  } catch {
-    return null;
   }
+  return null;
 }
 
+/** The argument of `_` or `^` starting at `at`: a `{…}` group or a single character. */
+function readScript(s: string, at: number): { nodes: MathNode[]; end: number } | null {
+  let i = at;
+  while (s[i] === " ") i++;
+  if (s[i] === "{") {
+    const group = readGroup(s, i);
+    if (!group) return null;
+    const nodes = texToNodes(group.inside);
+    return nodes ? { nodes, end: group.end } : null;
+  }
+  const char = s[i];
+  if (char === undefined || "\\}_^".includes(char)) return null;
+  const node: MathNode = /^[a-zA-Z]$/.test(char)
+    ? { type: "var", name: char }
+    : { type: "text", value: char };
+  return { nodes: [node], end: i + 1 };
+}
+
+/**
+ * Typesets the TeX subset used by skill.md: Latin letters (as variables),
+ * digits and punctuation, `_` and `^` scripts, `\cdot`, `\times`, `\gg`, and
+ * `\pmod{m}`. Returns null for any other command or an unbalanced group, so
+ * the renderer can fall back to showing the raw TeX as code.
+ */
+export function texToNodes(tex: string): MathNode[] | null {
+  const s = tex.trim();
+  const nodes: MathNode[] = [];
+  let idx = 0;
+  while (idx < s.length) {
+    const char = s[idx];
+    if (char === "\\") {
+      const name = /^\\([a-zA-Z]+)/.exec(s.slice(idx))?.[1];
+      if (!name) return null;
+      idx += name.length + 1;
+      const symbol = TEX_SYMBOLS.get(name);
+      if (symbol !== undefined) {
+        nodes.push({ type: "text", value: symbol });
+        continue;
+      }
+      if (name !== "pmod") return null;
+      while (s[idx] === " ") idx++;
+      const group = readGroup(s, idx);
+      if (!group) return null;
+      const modulus = texToNodes(group.inside);
+      if (!modulus) return null;
+      nodes.push({ type: "text", value: " mod " }, ...modulus);
+      idx = group.end;
+      continue;
+    }
+    if (char === "_" || char === "^") {
+      const script = readScript(s, idx + 1);
+      if (!script) return null;
+      nodes.push({ type: char === "_" ? "sub" : "sup", children: script.nodes });
+      idx = script.end;
+      continue;
+    }
+    nodes.push(/^[a-zA-Z]$/.test(char) ? { type: "var", name: char } : { type: "text", value: char });
+    idx++;
+  }
+  return nodes;
+}
+
+function visibleMath(nodes: MathNode[]): string {
+  return nodes
+    .map((n) => (n.type === "var" ? n.name : n.type === "text" ? n.value : visibleMath(n.children)))
+    .join("");
+}
+
+function spokenMath(nodes: MathNode[]): string {
+  return nodes
+    .map((n) => {
+      if (n.type === "var") return n.name;
+      if (n.type === "text") return n.value.replace(/[·×≫]/g, (c) => SPOKEN_SYMBOLS.get(c) ?? c);
+      return `${n.type === "sub" ? " sub " : " to the power "}${spokenMath(n.children)} `;
+    })
+    .join("");
+}
+
+const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
+
+/**
+ * The spoken form of a supported TeX expression, for example
+ * "X sub n shifted right by 16" for `X_n \gg 16`. Returns null when the
+ * expression needs no separate spoken text (it reads correctly as typeset) or
+ * when `texToNodes` doesn't support it.
+ */
 export function texToSpeech(tex: string): string | null {
-  return tex
-    .replace(/\\cdot/g, "times")
-    .replace(/\\pmod\{([^}]+)\}/g, "mod $1")
-    .replace(/_\{([^}]+)\}/g, "sub $1")
-    .replace(/_([a-zA-Z0-9])/g, "sub $1")
-    .replace(/\^\{([^}]+)\}/g, "to the power $1")
-    .replace(/\^([a-zA-Z0-9])/g, "to the power $1")
-    .replace(/\s+/g, " ")
-    .trim();
+  const nodes = texToNodes(tex);
+  if (!nodes) return null;
+  const spoken = collapse(spokenMath(nodes));
+  return spoken === collapse(visibleMath(nodes)) ? null : spoken;
 }

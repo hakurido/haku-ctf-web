@@ -110,6 +110,15 @@ export type ApiResult<T> =
     }
   | { kind: "network-error" };
 
+/** Shown when the body can't be parsed as JSON, such as an HTML error page. */
+const NOT_JSON_MESSAGE = "The server's response wasn't JSON.";
+/** Shown when a JSON error body has neither a string `message` nor a string `error`. */
+const NO_MESSAGE = "The response had no message.";
+
+function isRecord(b: unknown): b is Record<string, unknown> {
+  return typeof b === "object" && b !== null && !Array.isArray(b);
+}
+
 function extractRetryAfter(message: string): number | null {
   const match = /(\d+)\s*s\b/.exec(message);
   return match ? parseInt(match[1], 10) : null;
@@ -118,7 +127,7 @@ function extractRetryAfter(message: string): number | null {
 async function request<T>(
   path: string,
   init: RequestInit,
-  guard: (body: any) => body is T,
+  guard: (body: unknown) => body is T,
   acceptNonOk: boolean = false
 ): Promise<ApiResult<T>> {
   try {
@@ -127,14 +136,15 @@ async function request<T>(
       signal: AbortSignal.timeout(15000),
     });
 
-    let body: any = null;
+    let body: JsonValue;
     try {
-      body = await res.json();
+      // Anything JSON.parse returns is a JsonValue.
+      body = (await res.json()) as JsonValue;
     } catch {
       return {
         kind: "server-error",
         status: res.status,
-        message: `The server sent an unexpected response (HTTP ${res.status}).`,
+        message: NOT_JSON_MESSAGE,
         retryAfterSec: null,
         body: null,
       };
@@ -144,16 +154,14 @@ async function request<T>(
       return { kind: "ok", status: res.status, data: body };
     }
 
+    const record = isRecord(body) ? body : null;
+    const serverMessage = typeof record?.message === "string" ? record.message : null;
     const message =
-      typeof body?.message === "string"
-        ? body.message
-        : typeof body?.error === "string"
-        ? body.error
-        : `The server sent an unexpected response (HTTP ${res.status}).`;
+      serverMessage ?? (typeof record?.error === "string" ? record.error : NO_MESSAGE);
 
     const retryAfterSec =
-      res.status === 429 && typeof body?.message === "string"
-        ? extractRetryAfter(body.message)
+      res.status === 429 && serverMessage !== null
+        ? extractRetryAfter(serverMessage)
         : null;
 
     return {
@@ -168,12 +176,20 @@ async function request<T>(
   }
 }
 
+const isScoreboard = (b: unknown): b is ScoreboardResponse =>
+  isRecord(b) && Array.isArray(b.leaderboard);
+
+const isFlagSubmit = (b: unknown): b is FlagSubmitResponse =>
+  isRecord(b) && typeof b.success === "boolean" && typeof b.message === "string";
+
+const isGate1Chat = (b: unknown): b is Gate1ChatResponse =>
+  isRecord(b) && typeof b.allowed === "boolean" && typeof b.response === "string";
+
+const isGateSubmit = (b: unknown): b is GateSubmitResponse =>
+  isRecord(b) && typeof b.success === "boolean" && typeof b.message === "string";
+
 export async function getScoreboard(): Promise<ApiResult<ScoreboardResponse>> {
-  return request(
-    "/api/scoreboard",
-    { method: "GET" },
-    (b: any): b is ScoreboardResponse => Array.isArray(b?.leaderboard)
-  );
+  return request("/api/scoreboard", { method: "GET" }, isScoreboard);
 }
 
 export async function postFlag(
@@ -187,8 +203,7 @@ export async function postFlag(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agentName, flag }),
     },
-    (b: any): b is FlagSubmitResponse =>
-      typeof b?.success === "boolean" && typeof b?.message === "string",
+    isFlagSubmit,
     true
   );
 }
@@ -203,16 +218,15 @@ export async function postGate1Prompt(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
     },
-    (b: any): b is Gate1ChatResponse =>
-      typeof b?.allowed === "boolean" && typeof b?.response === "string"
+    isGate1Chat
   );
 }
 
 export async function getChallenge<G extends 2 | 3 | 4>(
   gate: G
 ): Promise<ApiResult<ChallengeByGate[G]>> {
-  const guard = (b: any): b is ChallengeByGate[G] => {
-    if (typeof b?.sessionToken !== "string" || b.sessionToken.length === 0) return false;
+  const guard = (b: unknown): b is ChallengeByGate[G] => {
+    if (!isRecord(b) || typeof b.sessionToken !== "string" || b.sessionToken.length === 0) return false;
     if (gate === 2) return Array.isArray(b.sequence);
     if (gate === 3) return Array.isArray(b.clauses);
     if (gate === 4) return typeof b.bytecodeHex === "string";
@@ -233,8 +247,7 @@ export async function submitGate<G extends 2 | 3 | 4>(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     },
-    (b: any): b is GateSubmitResponse =>
-      typeof b?.success === "boolean" && typeof b?.message === "string",
+    isGateSubmit,
     true
   );
 }

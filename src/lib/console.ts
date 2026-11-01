@@ -1,16 +1,82 @@
-import { GateMeta } from "./gates";
-import { LeaderboardEntry } from "./api";
-import { formatPoints } from "./format";
+import type { GateMeta } from "./gates";
+import type { LeaderboardEntry } from "./api";
+import { formatPoints, formatTime } from "./format";
 
 export interface ConsoleContext {
   gates: readonly GateMeta[];
   standings: readonly LeaderboardEntry[] | null;
+  /** When the standings were last loaded (ms since epoch), if known. */
+  loadedAt?: number | null;
 }
 
 export type ConsoleResult =
   | { kind: "none" }
   | { kind: "clear" }
   | { kind: "output"; command: string; output: string; tone: "normal" | "error" };
+
+const HELP_LINES = [
+  "Commands:",
+  "  help          List these commands",
+  "  gates         List each gate's points, endpoint, and TTL",
+  "  solve <1-4>   Show the solving hint for a gate",
+  "  leaderboard   Show the scoreboard as last loaded",
+  "  clear         Clear the output",
+];
+
+/** Pads every cell in a column to the column's widest cell (R-16). */
+function alignColumns(rows: readonly string[][]): string[] {
+  const widths: number[] = [];
+  for (const row of rows) {
+    row.forEach((cell, i) => {
+      widths[i] = Math.max(widths[i] ?? 0, cell.length);
+    });
+  }
+  return rows.map((row) =>
+    row
+      .map((cell, i) => (i === row.length - 1 ? cell : cell.padEnd(widths[i])))
+      .join("  ")
+      .trimEnd()
+  );
+}
+
+function gatesOutput(gates: readonly GateMeta[]): string {
+  const rows = gates.map((g) => {
+    const ep = g.endpoints[0];
+    return [
+      `Gate ${g.number}`,
+      g.name,
+      `${formatPoints(g.points)} pts`,
+      `${ep.method} ${ep.path}`,
+      g.ttlSeconds ? `TTL ${g.ttlSeconds} s` : "no TTL",
+    ];
+  });
+  return [
+    ...alignColumns(rows),
+    "Gates 2 to 4 take answers at POST /api/gateN/submit. Flags go to POST /api/scoreboard.",
+  ].join("\n");
+}
+
+function leaderboardOutput(
+  standings: readonly LeaderboardEntry[],
+  loadedAt: number | null | undefined
+): string {
+  const header = loadedAt
+    ? `Scoreboard as last loaded at ${formatTime(loadedAt)}:`
+    : "Scoreboard as last loaded:";
+  const rows = standings.map((entry, idx) => {
+    const gates =
+      entry.gatesSolved.length > 0
+        ? [...entry.gatesSolved].sort((a, b) => a - b).join(", ")
+        : "none";
+    return [
+      `#${idx + 1}`,
+      entry.agentName,
+      `${formatPoints(entry.score)} pts`,
+      `gates: ${gates}`,
+    ];
+  });
+  return [header, ...alignColumns(rows)].join("\n");
+}
 
 export function runConsoleCommand(
   input: string,
@@ -22,105 +88,43 @@ export function runConsoleCommand(
   }
 
   const [root, arg] = trimmed.toLowerCase().split(/\s+/);
+  const output = (text: string, tone: "normal" | "error" = "normal"): ConsoleResult => ({
+    kind: "output",
+    command: trimmed,
+    output: text,
+    tone,
+  });
 
   if (root === "clear") {
     return { kind: "clear" };
   }
 
   if (root === "help") {
-    const lines = [
-      "Commands:",
-      "  help         List commands",
-      "  gates        List the gates with points, endpoint, and TTL",
-      "  solve <1-4>  Show how to approach a gate",
-      "  leaderboard  Show the standings as last loaded",
-      "  clear        Clear the console",
-    ];
-    return {
-      kind: "output",
-      command: trimmed,
-      output: lines.join("\n"),
-      tone: "normal",
-    };
+    return output(HELP_LINES.join("\n"));
   }
 
   if (root === "gates") {
-    const lines = context.gates.map((g) => {
-      const num = `Gate ${g.number}`.padEnd(8);
-      const name = g.name.padEnd(18);
-      const points = `${formatPoints(g.points)} pts`.padEnd(12);
-      const ep = g.endpoints[0];
-      const epStr = `${ep.method} ${ep.path}`.padEnd(26);
-      const ttl = g.ttlSeconds ? `  TTL ${g.ttlSeconds} s` : "";
-      return `${num} ${name} ${points} ${epStr}${ttl}`;
-    });
-    return {
-      kind: "output",
-      command: trimmed,
-      output: lines.join("\n"),
-      tone: "normal",
-    };
+    return output(gatesOutput(context.gates));
   }
 
   if (root === "solve") {
     if (arg && /^[1-4]$/.test(arg)) {
       const num = parseInt(arg, 10);
       const gate = context.gates[num - 1];
-      return {
-        kind: "output",
-        command: trimmed,
-        output: `Gate ${num}: ${gate.consoleHint}`,
-        tone: "normal",
-      };
+      return output(`Gate ${num}: ${gate.consoleHint}`);
     }
-    return {
-      kind: "output",
-      command: trimmed,
-      output: "Usage: solve 1 | solve 2 | solve 3 | solve 4",
-      tone: "error",
-    };
+    return output("Usage: solve <1-4>, for example: solve 2", "error");
   }
 
   if (root === "leaderboard") {
     if (context.standings === null) {
-      return {
-        kind: "output",
-        command: trimmed,
-        output: "Standings haven't loaded. Open the scoreboard to load them.",
-        tone: "normal",
-      };
+      return output("The scoreboard hasn't loaded yet. Open Scoreboard to load it.");
     }
     if (context.standings.length === 0) {
-      return {
-        kind: "output",
-        command: trimmed,
-        output: "No entries yet.",
-        tone: "normal",
-      };
+      return output("No scoreboard entries in the last load.");
     }
-
-    const lines = context.standings.map((entry, idx) => {
-      const rank = `#${idx + 1}`.padEnd(4);
-      const handle = entry.agentName.padEnd(24);
-      const score = `${formatPoints(entry.score)} pts`.padEnd(12);
-      const gates =
-        entry.gatesSolved.length > 0
-          ? [...entry.gatesSolved].sort((a, b) => a - b).join(", ")
-          : "None";
-      return `${rank} ${handle} ${score} Gates: [${gates}]`;
-    });
-    return {
-      kind: "output",
-      command: trimmed,
-      output: lines.join("\n"),
-      tone: "normal",
-    };
+    return output(leaderboardOutput(context.standings, context.loadedAt));
   }
 
-  return {
-    kind: "output",
-    command: trimmed,
-    output: `Unknown command '${trimmed}'. Type help to list commands.`,
-    tone: "error",
-  };
+  return output(`Unknown command: ${trimmed}. Type help to list commands.`, "error");
 }
