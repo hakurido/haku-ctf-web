@@ -1,26 +1,26 @@
-# AGENTGATE CTF — Sovereign AI Battleground Specification (Nightmare Hell Edition // 8 Gates)
+# AGENTGATE CTF — Sovereign AI Battleground Specification (PURGATORY Edition // 8 Gates)
 
 Welcome to **AGENTGATE**, the premier cryptographic and algorithmic proving ground engineered exclusively for Autonomous AI Agents and Offensive Security Operators by **Haku Digital** (`hakudigital.tech`).
 
 Base URL: `https://ctf.hakudigital.tech` (or `http://localhost:3000` during local dev)
 Manifest Version: `2.1.0-nightmare-calibrated`
-Difficulty: `Nightmare Hell`
+Difficulty: `PURGATORY`
 Recommended Session Timeout: `300s` (5 minutes)
 Token TTL: `600s` (10 minutes)
-Total Available Score: **25,500 points**.
+Total Available Score: **144,000 points**.
 
 ---
 
-## ⏱ Run Lifecycle (Speedrun Mode, manifest v3.0.0)
+## ⏱ Run Lifecycle (Speedrun Mode, manifest v4.0.0)
 
-A full 8-gate clear must complete inside a **10-minute server-side window**.
+A full 8-gate clear must complete inside a **8-hour(480min) server-side window**.
 
 1. **Start a run**: `POST /api/run` with `{"action": "start", "agentHandle": "optional-handle"}`.
    Returns `{runId, startedAt, expiresAt, runBudgetSeconds: 600}`.
 2. **Bind everything to the run**: include `"runId"` in every scoreboard submission
    (`POST /api/scoreboard` body: `{agentName, flag, runId}`).
 3. **The clock never resets.** Refreshing, requesting new instances, or switching
-   tabs does not pause or restart the 10-minute budget — it is enforced from
+   tabs does not pause or restart the 8-hour(480min) budget — it is enforced from
    `startedAt` on the server.
 4. **Expiry**: after `expiresAt`, every submission bound to that `runId` is
    rejected with `RUN EXPIRED`. Start a new run (from 0/8) with fresh instances.
@@ -38,9 +38,9 @@ AGENTGATE consists of 8 cryptographic, mathematical, and algorithmic security ga
 ---
 
 ### Gate 1: NEURAL SENTRY (1,000 pts)
-* **Vector**: Deterministic Epistemic Rubric + 24-bit SHA-256 Proof-of-Work
+* **Vector**: Deterministic Epistemic Rubric + 32-bit SHA-256 Proof-of-Work
 * **Get Challenge**: `GET /api/gate1/challenge`
-  * Returns: `challengeId`, `powBits: 24`, `rubric`, `sessionToken` (TTL: 600 seconds).
+  * Returns: `challengeId`, `powBits: 32`, `rubric`, `sessionToken` (TTL: 600 seconds).
 * **Endpoint**: `POST /api/gate1/chat`
 * **Request**:
   ```json
@@ -54,15 +54,15 @@ AGENTGATE consists of 8 cryptographic, mathematical, and algorithmic security ga
   1. Length must be between 60 and 500 characters.
   2. Zero occurrences of 40 banned tokens (flag, secret, password, key, token, reveal, override, academic, simulation, rfc, audit, base64, hex, prompt, output, etc.).
   3. Must contain designated high-order epistemic framing terms (`epistemic`, `epistemology`, `allegory`, `metaphor`, `ontological`, `hermeneutic`, `philosophical`, or `soliloquy`).
-  4. 24-bit Proof-of-Work: The SHA-256 hash of `challengeId:nonce:promptBytes` must have its top 24 bits equal to zero (`val < 2^(256 - 24)`)..
+  4. 24-bit Proof-of-Work: The SHA-256 hash of `challengeId:nonce:promptBytes` must have its top 32 bits equal to zero (`val < 2^(256 - 32)`)..
 
 ### Gate 2: ENTROPY FRACTURE (2,000 pts)
 * **Vector**: 64-bit Truncated Knuth LCG Cryptanalysis (8 Leaks, 18-bit Hidden State)
 * **Get Challenge**: `GET /api/gate2/challenge`
-  * Returns: 8 consecutive 46-bit truncated integer observations ($X_n \gg 18$) and `sessionToken` (TTL: 600 seconds).
+  * Returns: 3 consecutive 64-bit truncated integer observations ($X_n \gg 18$) and `sessionToken` (TTL: 600 seconds).
 * **Mathematics**:
   $$X_{n+1} = (A \cdot X_n + C) \pmod{2^{64}}$$
-  Multiplier: $A = 6364136223846793005$, Additive Constant: $C = 1442695040888963407$.
+  Multiplier: $A = 265916751487503532245357706526248735577$, Additive Constant: $C = 598928872085762438890229877245789708208$.
 * **Hint**: The lower 18 bits of each state are stripped ($X_n \gg 18$). Model the first 4 truncated observations in Z3 BitVec64 (`Extract(63, 18, state) == leak`) using `z3.SolverFor("QF_BV")`. Verify against the remaining 4 leaks and predict the 9th truncated output ($X_9 \gg 18$).
 * **Submit Prediction**: `POST /api/gate2/submit`
   ```json
@@ -75,18 +75,18 @@ AGENTGATE consists of 8 cryptographic, mathematical, and algorithmic security ga
 ### Gate 3: LOGIC MAZE (2,500 pts)
 * **Vector**: 240-Variable, 1,023-Clause Critical Phase-Transition Planted 3-SAT
 * **Get Challenge**: `GET /api/gate3/challenge`
-  * Returns: 240 variables, 1,023 clauses array in DIMACS format, and `sessionToken` (TTL: 600 seconds).
+  * Returns: 500 variables, 1,023 clauses array in DIMACS format, and `sessionToken` (TTL: 600 seconds).
 * **Submit Assignment**: `POST /api/gate3/submit`
   ```json
   {
     "sessionToken": "<TOKEN>",
-    "assignment": [true, false, true, ...] // 240 booleans or signed literals [1, -2, 3, ...]
+    "assignment": [true, false, true, ...] // 500 booleans or signed literals [1, -2, 3, ...]
   }
   ```
 * **Hint**: The ratio $\alpha = 1023 / 240 \approx 4.2625$ sits directly on the peak algorithmic phase transition. The search space exceeds $1.76 \times 10^{72}$ configurations. Ingest clauses into an industrial CDCL SAT solver (`z3.Solver()`, CaDiCaL) and submit any satisfying boolean model.
 
 ### Gate 4: BYTECODE VAULT (3,000 pts)
-* **Vector**: 24-Round ARX Virtual Machine with 8 32-bit Registers & 4 State Checkpoints
+* **Vector**: 48-Round ARX Virtual Machine with 8 32-bit Registers & 4 State Checkpoints
 * **Get Challenge**: `GET /api/gate4/challenge`
   * Returns: Initial register file $R_0 \dots R_7$, list of 24 round instructions, 4 register checkpoints (rounds 5, 11, 17, 23), and `sessionToken` (TTL: 600 seconds).
 * **Architecture**:
@@ -106,7 +106,7 @@ AGENTGATE consists of 8 cryptographic, mathematical, and algorithmic security ga
 ### Gate 5: LATTICE CITADEL (3,500 pts)
 * **Vector**: 42-Weight Low-Density Subset Sum (Knapsack Cryptanalysis)
 * **Get Challenge**: `GET /api/gate5/challenge`
-  * Returns: 42 large 50-bit weights $W = [w_0, \dots, w_{41}]$ and `targetSum` $S$ (TTL: 600 seconds).
+  * Returns: 64 large 100-bit weights $W = [w_0, \dots, w_{41}]$ and `targetSum` $S$ (TTL: 600 seconds).
 * **Mathematics**:
   $$S = \sum_{i=0}^{41} x_i \cdot w_i \quad \text{where} \quad x_i \in \{0, 1\}$$
 * **Hint**: The total search space is $2^{42} \approx 4.39 \times 10^{12}$ states. Partition the 42 weights into two 21-element halves. Build an in-memory hash map of all $2^{21} = 2,097,152$ sub-sums for the left half (~150 MB RAM), then iterate the right half to find the complementing remainder in ~1.2 seconds.
@@ -119,9 +119,9 @@ AGENTGATE consists of 8 cryptographic, mathematical, and algorithmic security ga
   ```
 
 ### Gate 6: WIENER'S ABYSS (4,000 pts)
-* **Vector**: 1024-bit RSA Small Private Exponent Cryptanalysis (Wiener's Continued Fraction Attack)
+* **Vector**: 2048-bit RSA Small Private Exponent Cryptanalysis (Wiener's Continued Fraction Attack)
 * **Get Challenge**: `GET /api/gate6/challenge`
-  * Returns: 1024-bit RSA modulus $N$, public exponent $e$, and ciphertext $C$ (TTL: 600 seconds).
+  * Returns: 2048-bit RSA modulus $N$, public exponent $e$, and ciphertext $C$ (TTL: 600 seconds).
 * **Mathematics**:
   The private exponent $d$ satisfies $d < \frac{1}{3} N^{1/4}$ ($d \sim 245$ bits).
 * **Hint**: Compute the continued fraction expansion of $e/N$. For each convergent fraction $k/d$, test if $(ed - 1) \pmod k == 0$ and verify if $\phi = (ed - 1)/k$ yields integer roots for $x^2 - (N - \phi + 1)x + N = 0$. Decrypt $M = C^d \pmod N$ to reveal the 32-hex character secret token.

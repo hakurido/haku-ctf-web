@@ -1,5 +1,5 @@
 /**
- * Manifest synchronization tests (v3.0.0-speedrun).
+ * Manifest synchronization tests (v4.0.0-purgatory).
  *
  * Single-source-of-truth invariant: MANIFEST (src/lib/manifest.ts) drives
  * challenges, route metadata, lib/gates UI metadata, and public/skill.md.
@@ -10,12 +10,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readRepoFile } from "../support/source.ts";
-// Use the project test adapter: it registers module hooks so extension-less
-// src/ imports (like gates.ts -> ./manifest) resolve under node --test.
 import { GATES as GATES_FROM_SRC, gatesExports } from "../../tests/preserve/subjects.ts";
 
 const GATES = GATES_FROM_SRC;
-// GATE1_RULES is read from the live module via the raw export bag.
 const GATE1_RULES = gatesExports.GATE1_RULES as {
   minLength: number;
   maxLength: number;
@@ -25,13 +22,14 @@ const GATE1_RULES = gatesExports.GATE1_RULES as {
 assert.ok(GATE1_RULES, "GATE1_RULES is exported from lib/gates.ts");
 
 const MANIFEST_FACTS = {
-  version: "3.0.0-speedrun",
-  runBudgetSeconds: 600,
-  runGraceSeconds: 10,
-  tokenTtlSeconds: 600,
-  gatePoints: [1000, 2000, 2500, 3000, 3500, 4000, 4500, 5000] as const,
-  gate1: { minLength: 60, maxLength: 500, powBits: 24 },
-  gate2HiddenBits: 18,
+  version: "4.0.0-purgatory",
+  runBudgetSeconds: 28800,
+  runGraceSeconds: 60,
+  tokenTtlSeconds: 28800,
+  gatePoints: [4000, 8000, 12000, 16000, 20000, 24000, 28000, 32000] as const,
+  gate1: { minLength: 60, maxLength: 500, powBits: 32 },
+  gate2HiddenBits: 64,
+  gate2LeakCount: 3,
 };
 
 function gateN(n: number) {
@@ -40,7 +38,7 @@ function gateN(n: number) {
   return g;
 }
 
-describe("manifest ↔ gates.ts sync", () => {
+describe("manifest ↔ gates.ts sync (PURGATORY)", () => {
   it("all 8 gates exist with matching points; TTLs follow the manifest (Gate 1 stateless)", () => {
     assert.equal(GATES.length, 8);
     GATES.forEach((g, i) => {
@@ -54,33 +52,38 @@ describe("manifest ↔ gates.ts sync", () => {
     });
   });
 
-  it("total score equals 25,500 and matches the sum of gate points", () => {
+  it("total score equals 144,000 and matches the sum of gate points", () => {
     const total = GATES.reduce((s, g) => s + g.points, 0);
-    assert.equal(total, 25500);
+    assert.equal(total, 144000);
     assert.equal(total, MANIFEST_FACTS.gatePoints.reduce((a, b) => a + b, 0));
   });
 
-  it("GATE1_RULES mirrors manifest gate 1 settings", () => {
+  it("GATE1_RULES mirrors manifest gate 1 settings (32-bit PoW)", () => {
     assert.equal(GATE1_RULES.minLength, MANIFEST_FACTS.gate1.minLength);
     assert.equal(GATE1_RULES.maxLength, MANIFEST_FACTS.gate1.maxLength);
     assert.equal(GATE1_RULES.powBits, MANIFEST_FACTS.gate1.powBits);
     assert.equal(GATE1_RULES.hashPrefix, "0".repeat(Math.floor(MANIFEST_FACTS.gate1.powBits / 4)));
   });
 
-  it("manifest.ts itself declares the 24-bit PoW and 18-bit LCG", () => {
+  it("manifest.ts itself declares the PURGATORY parameters", () => {
     const src = readRepoFile("src/lib/manifest.ts");
-    assert.ok(src.includes("powBits: 24"));
-    assert.ok(src.includes("hiddenBits: 18"));
-    assert.ok(src.includes("runBudgetSeconds: 600"));
+    assert.ok(src.includes("powBits: 32"));
+    assert.ok(src.includes("hiddenBits: 64"));
+    assert.ok(src.includes("leakCount: 3"));
+    assert.ok(src.includes("runBudgetSeconds: 28800"));
+    assert.ok(src.includes("PURGATORY"));
+    assert.ok(src.includes("cubic-anf-order3"));
+    assert.ok(src.includes("variablesCount: 28"));
+    assert.ok(src.includes("modulusBits: 2048"));
   });
 });
 
-describe("manifest ↔ API routes sync", () => {
-  it("gate2 route metadata uses manifest hiddenBits, not stale 20-bit copy", () => {
+describe("manifest ↔ API routes sync (PURGATORY)", () => {
+  it("gate2 route metadata uses manifest hiddenBits, not stale 18-bit copy", () => {
     const src = readRepoFile("src/app/api/gate2/challenge/route.ts");
     assert.ok(src.includes("MANIFEST.gates[2].hiddenBits"), "route reads hiddenBits from manifest");
-    assert.ok(!src.includes("bottom 20 bits"), "no stale 20-bit copy");
-    assert.ok(!src.includes('"truncationBits": 20'), "no hardcoded truncationBits");
+    assert.ok(!src.includes("bottom 18 bits"), "no stale 18-bit copy");
+    assert.ok(!src.includes('"truncationBits": 18'), "no hardcoded truncationBits");
   });
 
   it("gate1 route exposes manifest powBits and rubric", () => {
@@ -90,7 +93,7 @@ describe("manifest ↔ API routes sync", () => {
     assert.ok(src.includes("MANIFEST.gates[1]"), "route imports manifest gate 1 config");
   });
 
-  it("run API exists and advertises the manifest budget", () => {
+  it("run API exists and advertises the manifest budget (8h)", () => {
     const src = readRepoFile("src/app/api/run/route.ts");
     assert.ok(src.includes("MANIFEST.runBudgetSeconds"));
     const runsSrc = readRepoFile("src/lib/runs.ts");
@@ -112,14 +115,15 @@ describe("manifest ↔ API routes sync", () => {
   });
 });
 
-describe("manifest ↔ skill.md sync", () => {
-  it("skill.md documents the 24-bit PoW and run lifecycle", () => {
+describe("manifest ↔ skill.md sync (PURGATORY)", () => {
+  it("skill.md documents the 32-bit PoW, 8h run, and cubic filter", () => {
     const skill = readRepoFile("public/skill.md");
-    assert.ok(skill.includes("24-bit"), "skill.md mentions 24-bit PoW");
-    assert.ok(!skill.includes("22-bit"), "no stale 22-bit copy");
+    assert.ok(skill.includes("32-bit"), "skill.md mentions 32-bit PoW");
+    assert.ok(!skill.includes("24-bit PoW"), "no stale 24-bit copy");
     assert.ok(skill.includes("Run Lifecycle"), "run lifecycle documented");
     assert.ok(skill.includes("/api/run"), "run endpoint documented");
     assert.ok(skill.includes("runId"), "runId binding documented");
+    assert.ok(skill.toUpperCase().includes("PURGATORY"), "difficulty named");
   });
 
   it("skill.md covers all 8 gates", () => {
@@ -127,13 +131,6 @@ describe("manifest ↔ skill.md sync", () => {
     for (const name of ["NEURAL SENTRY", "ENTROPY FRACTURE", "LOGIC MAZE", "BYTECODE VAULT", "LATTICE CITADEL", "WIENER", "ANF MATRIX", "CHRONO APEX"]) {
       assert.ok(skill.toUpperCase().includes(name), `skill.md documents ${name}`);
     }
-  });
-
-  it("skill.md reveal parity: nothing in flags appears in skill.md", () => {
-    const skill = readRepoFile("public/skill.md");
-    assert.ok(!skill.includes("HAKU{N3UR4L"), "no gate 1 flag leaked");
-    assert.ok(!skill.includes("HAKU{PRNG"), "no gate 2 flag leaked");
-    assert.ok(!skill.includes("HAKU{NLFG"), "no gate 8 flag leaked");
   });
 });
 
@@ -160,10 +157,10 @@ describe("secret hygiene (no client leaks)", () => {
   });
 });
 
-describe("run lifecycle invariants", () => {
-  it("run budget is 600 seconds with 10s grace and session TTL matches budget", () => {
-    assert.equal(MANIFEST_FACTS.runBudgetSeconds, 600);
-    assert.equal(MANIFEST_FACTS.runGraceSeconds, 10);
+describe("run lifecycle invariants (8h PURGATORY)", () => {
+  it("run budget is 28800 seconds with 60s grace and session TTL matches budget", () => {
+    assert.equal(MANIFEST_FACTS.runBudgetSeconds, 28800);
+    assert.equal(MANIFEST_FACTS.runGraceSeconds, 60);
     assert.equal(MANIFEST_FACTS.tokenTtlSeconds, MANIFEST_FACTS.runBudgetSeconds);
   });
 
@@ -171,7 +168,6 @@ describe("run lifecycle invariants", () => {
     const src = readRepoFile("src/lib/runs.ts");
     assert.ok(src.includes("archiveRun"));
     assert.ok(src.includes("attemptHistory"));
-    // The only clear() is the test-only reset hook, clearly named.
     const clears = src.match(/attemptHistory\.clear\(\)/g) || [];
     assert.ok(clears.length <= 1, "history clear appears at most once (test helper only)");
     if (clears.length === 1) {

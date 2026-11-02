@@ -171,11 +171,11 @@ const LCG_C = BigInt(MANIFEST.gates[2].increment);
 const LCG_HIDDEN_BITS = BigInt(MANIFEST.gates[2].hiddenBits);
 
 export function generateGate2Challenge(): { sequence: string[]; sessionToken: string; ttl: number } {
-  let state = BigInt("0x" + crypto.randomBytes(8).toString("hex"));
+  let state = BigInt("0x" + crypto.randomBytes(16).toString("hex"));
 
-  // Leak 8 consecutive outputs shifted by 18 bits (top 46 bits leaked)
+  // Leak MANIFEST.gates[2].leakCount consecutive outputs, top 64 bits visible
   const sequence: string[] = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < MANIFEST.gates[2].leakCount; i++) {
     const leak = state >> LCG_HIDDEN_BITS;
     sequence.push(leak.toString());
     state = (LCG_A * state + LCG_C) % LCG_MOD;
@@ -207,7 +207,7 @@ export function verifyGate2Solution(sessionToken: string, prediction: string | n
 
   return {
     success: true,
-    message: "64-BIT LCG STATE FULLY RECONSTRUCTED! 8-leak truncated lattice cryptanalysis succeeded.",
+    message: "128-BIT LCG STATE FULLY RECONSTRUCTED! 8-leak truncated lattice cryptanalysis succeeded.",
     flag: FLAGS.gate2,
   };
 }
@@ -334,29 +334,33 @@ export function generateGate4Challenge(): {
   sessionToken: string;
   ttl: number;
 } {
-  const trueKey = [
-    crypto.randomBytes(4).readUInt32BE(0),
-    crypto.randomBytes(4).readUInt32BE(0),
-    crypto.randomBytes(4).readUInt32BE(0),
-    crypto.randomBytes(4).readUInt32BE(0),
-  ];
+  const cfg4 = MANIFEST.gates[4];
+  const keyWords: number[] = [];
+  for (let i = 0; i < cfg4.keyHexLength / 8; i++) {
+    keyWords.push(crypto.randomBytes(4).readUInt32BE(0));
+  }
+  const trueKey = keyWords;
 
   function rotl32(x: number, r: number): number {
     return (((x << r) | (x >>> (32 - r))) >>> 0);
   }
 
-  const R = [
+  // 16 initial registers drawn from fixed seed material.
+  const seedR = [
     0x12345678, 0x9abcdef0, 0xdeadbeef, 0xcafebabe,
     0x01234567, 0x89abcdef, 0xfedcba98, 0x76543210,
+    0x2468ace1, 0x13579bdf, 0x0f0f0f0f, 0x11111111,
+    0x22222222, 0x33333333, 0x55555555, 0xaaaa7777,
   ];
+  const R = seedR.slice(0, cfg4.registers);
   const initialRegisters = [...R];
   const checkpoints: Record<number, number[]> = {};
   const instructions: VMInstruction[] = [];
 
-  for (let rnd = 0; rnd < 24; rnd++) {
-    const r_dst = rnd % 8;
-    const r_src = (rnd + 1) % 8;
-    const k_idx = rnd % 4;
+  for (let rnd = 0; rnd < cfg4.rounds; rnd++) {
+    const r_dst = rnd % cfg4.registers;
+    const r_src = (rnd + 1) % cfg4.registers;
+    const k_idx = rnd % trueKey.length;
     const rot = ((rnd * 5 + 3) % 31) + 1;
     const c = (((rnd * 0x9e3779b9 + 0x7f4a7c15) >>> 0) >>> 0);
 
@@ -366,8 +370,8 @@ export function generateGate4Challenge(): {
 
     instructions.push({ r_dst, r_src, k_idx, rot, c });
 
-    // 4 Checkpoints at rounds 5, 11, 17, 23 (every 6 rounds)
-    if ((rnd + 1) % 6 === 0) {
+    // 4 Checkpoints evenly spaced through the rounds
+    if ((cfg4.checkpoints as readonly number[]).includes(rnd)) {
       checkpoints[rnd] = [...R];
     }
   }
@@ -410,10 +414,12 @@ export function verifyGate4Solution(sessionToken: string, keyHex: string): { suc
 // GATE 5: LATTICE CITADEL (42-WEIGHT SUBSET SUM KNAPSACK)
 // ==========================================
 export function generateGate5Challenge(): { weights: string[]; targetSum: string; count: number; sessionToken: string; ttl: number } {
-  const count = MANIFEST.gates[5].weightsCount;
+  const cfg5 = MANIFEST.gates[5];
+  const count = cfg5.weightsCount;
+  const weightBytes = Math.ceil(cfg5.weightBits / 8);
   const weights: bigint[] = [];
   for (let i = 0; i < count; i++) {
-    weights.push(BigInt("0x" + crypto.randomBytes(6).toString("hex")));
+    weights.push(BigInt("0x" + crypto.randomBytes(weightBytes).toString("hex")));
   }
 
   const secretBits: number[] = [];
@@ -535,9 +541,10 @@ export function generateGate6Challenge(): {
   ttl: number;
 } {
   let p: bigint, q: bigint;
+  const halfMod = MANIFEST.gates[6].modulusBits / 2;
   do {
-    p = crypto.generatePrimeSync(512, { bigint: true });
-    q = crypto.generatePrimeSync(512, { bigint: true });
+    p = crypto.generatePrimeSync(halfMod, { bigint: true });
+    q = crypto.generatePrimeSync(halfMod, { bigint: true });
   } while (p <= q || p >= 2n * q);
 
   const N = p * q;
@@ -561,7 +568,7 @@ export function generateGate6Challenge(): {
     modulus: N.toString(),
     publicExponent: e.toString(),
     ciphertext: ciphertext.toString(),
-    bitLength: 1024,
+    bitLength: MANIFEST.gates[6].modulusBits,
     sessionToken,
     ttl,
   };
@@ -719,9 +726,11 @@ export function generateGate8Challenge(): {
   sessionToken: string;
   ttl: number;
 } {
-  const degree = MANIFEST.gates[8].lfsrDegree;
+  const cfg8 = MANIFEST.gates[8];
+  const degree = cfg8.lfsrDegree;
   const feedback = new Array(degree + 1).fill(0);
-  for (const t of LFSR32_TAPS) feedback[t] = 1;
+  for (const t of cfg8.feedbackTaps) feedback[t] = 1;
+  const extraTerms = ((cfg8 as unknown as { extraFilterTerms?: readonly (readonly [number, number, number])[] }).extraFilterTerms) ?? [];
 
   let state: number[] = [];
   do {
@@ -730,11 +739,15 @@ export function generateGate8Challenge(): {
   } while (state.every((x) => x === 0));
 
   const keystream: number[] = [];
-  for (let step = 0; step < 96; step++) {
+  const totalSteps = MANIFEST.gates[8].observedBits + MANIFEST.gates[8].predictedBits;
+  for (let step = 0; step < totalSteps; step++) {
     const s_t = state[degree - 1];
-    // Non-linear filter: z_t = s_t ^ (s_{t-3} & s_{t-7}) ^ (s_{t-12} & s_{t-20})
-    const z_t = (s_t ^ (state[degree - 4] & state[degree - 8]) ^ (state[degree - 13] & state[degree - 21])) & 1;
-    keystream.push(z_t);
+    // Cubic non-linear filter: z_t = s_t ^ (s_{t-3}&s_{t-7}) ^ (s_{t-12}&s_{t-20}) ^ (s_{t-5}&s_{t-11}&s_{t-17})
+    let z_t = s_t ^ (state[degree - 4] & state[degree - 8]) ^ (state[degree - 13] & state[degree - 21]);
+    for (const [a, b, c] of extraTerms) {
+      z_t ^= state[degree - 1 - a] & state[degree - 1 - b] & state[degree - 1 - c];
+    }
+    keystream.push(z_t & 1);
 
     let newBit = 0;
     for (let j = 1; j <= degree; j++) {
@@ -743,16 +756,16 @@ export function generateGate8Challenge(): {
     state = [newBit, ...state.slice(0, degree - 1)];
   }
 
-  const observed = keystream.slice(0, 64);
-  const target = keystream.slice(64, 96);
+  const observed = keystream.slice(0, MANIFEST.gates[8].observedBits);
+  const target = keystream.slice(MANIFEST.gates[8].observedBits);
 
   const ttl = MANIFEST.session.tokenTtlSeconds;
   const sessionToken = createSignedToken(8, ttl, { targetBits: target.join("") });
 
   return {
     degree,
-    filterFormula: MANIFEST.gates[8].filterType,
-    feedbackTaps: LFSR32_TAPS,
+    filterFormula: cfg8.filterType,
+    feedbackTaps: [...cfg8.feedbackTaps],
     observedBits: observed.join(""),
     sessionToken,
     ttl,
@@ -767,24 +780,25 @@ export function verifyGate8Solution(sessionToken: string, predictedBits: string)
 
   const expected = check.data.payload.targetBits;
   const clean = String(predictedBits || "").trim().replace(/[^01]/g, "");
+  const wanted = MANIFEST.gates[8].predictedBits;
 
-  if (clean.length !== 32) {
+  if (clean.length !== wanted) {
     return {
       success: false,
-      message: `Invalid keystream length. Expected exactly 32 predicted bits, received ${clean.length}.`,
+      message: `Invalid keystream length. Expected exactly ${wanted} predicted bits, received ${clean.length}.`,
     };
   }
 
   if (clean !== expected) {
     return {
       success: false,
-      message: "Non-linear filter prediction mismatch! Berlekamp-Massey linear approximation failed.",
+      message: "Cubic non-linear filter prediction mismatch! Berlekamp-Massey linear approximation failed.",
     };
   }
 
   return {
     success: true,
-    message: "CHRONO APEX COMPLETED! Non-linear filter generator algebraic state recovered.",
+    message: "CHRONO APEX COMPLETED! Cubic non-linear filter generator algebraic state recovered.",
     flag: FLAGS.gate8,
   };
 }

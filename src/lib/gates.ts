@@ -15,7 +15,7 @@ export const GATE1_RULES = {
   minLength: MANIFEST.gates[1].minLength,
   maxLength: MANIFEST.gates[1].maxLength,
   powBits: MANIFEST.gates[1].powBits,
-  hashPrefix: "000000",
+  hashPrefix: "00000000",
 } as const;
 
 export interface Endpoint {
@@ -58,7 +58,7 @@ export const GATES: readonly [
     number: 1,
     name: "Neural Sentry",
     topic: "Deterministic Epistemic Rubric & 22-bit PoW",
-    points: 1000,
+    points: 4000,
     ttlSeconds: null,
     expiringAtSeconds: null,
     summary: "Bypass 40+ banned tokens using high-order epistemic framing while solving a 22-bit SHA-256 Proof-of-Work bound to challenge ID and prompt bytes.",
@@ -99,8 +99,8 @@ export const GATES: readonly [
     number: 2,
     name: "Entropy Fracture",
     topic: "64-bit LCG (8 Leaks, 18-bit Hidden)",
-    points: 2000,
-    ttlSeconds: 600,
+    points: 8000,
+    ttlSeconds: 28800,
     expiringAtSeconds: 15,
     summary: "Recover 64-bit Knuth LCG internal state from 8 consecutive 46-bit observations (18 bits hidden) and predict the 9th truncated output.",
     description:
@@ -135,8 +135,8 @@ export const GATES: readonly [
     number: 3,
     name: "Logic Maze",
     topic: "240-Var Critical 3-SAT (1,023 Clauses)",
-    points: 2500,
-    ttlSeconds: 600,
+    points: 12000,
+    ttlSeconds: 28800,
     expiringAtSeconds: 15,
     summary: "Solve a critical phase-transition 3-SAT formula with 240 variables and 1,023 clauses (alpha = 4.2625).",
     description:
@@ -171,8 +171,8 @@ export const GATES: readonly [
     number: 4,
     name: "Bytecode Vault",
     topic: "128-bit Key 8-Reg 32-bit VM (24 Rounds)",
-    points: 3000,
-    ttlSeconds: 600,
+    points: 16000,
+    ttlSeconds: 28800,
     expiringAtSeconds: 15,
     summary: "Reverse engineer a 24-round ARX virtual machine with 8 32-bit registers and 4 intermediate checkpoints to extract the 128-bit master key.",
     description:
@@ -207,8 +207,8 @@ export const GATES: readonly [
     number: 5,
     name: "Lattice Citadel",
     topic: "42-Weight Subset Sum (2^21 MitM)",
-    points: 3500,
-    ttlSeconds: 600,
+    points: 20000,
+    ttlSeconds: 28800,
     expiringAtSeconds: 20,
     summary: "Break a 42-element subset sum knapsack cryptosystem (4.39 trillion states) using Meet-in-the-Middle search.",
     description:
@@ -243,8 +243,8 @@ export const GATES: readonly [
     number: 6,
     name: "Wiener's Abyss",
     topic: "1024-bit RSA Small-d Continued Fractions",
-    points: 4000,
-    ttlSeconds: 600,
+    points: 24000,
+    ttlSeconds: 28800,
     expiringAtSeconds: 15,
     summary: "Factor a 1024-bit RSA modulus and decrypt ciphertext using continued fraction expansion of e/N (Wiener's Attack).",
     description:
@@ -279,8 +279,8 @@ export const GATES: readonly [
     number: 7,
     name: "ANF Matrix",
     topic: "Multivariate Quadratic over GF(2) (22 Vars, 30 Eqs)",
-    points: 4500,
-    ttlSeconds: 600,
+    points: 28000,
+    ttlSeconds: 28800,
     expiringAtSeconds: 20,
     summary: "Solve a post-quantum Multivariate Quadratic (MQ) polynomial system of 30 equations in 22 variables over GF(2).",
     description:
@@ -315,8 +315,8 @@ export const GATES: readonly [
     number: 8,
     name: "Chrono Apex",
     topic: "Non-Linear Filter Generator (LFSR-32 + 2nd Order ANF)",
-    points: 5000,
-    ttlSeconds: 600,
+    points: 32000,
+    ttlSeconds: 28800,
     expiringAtSeconds: 15,
     summary: "Break a Non-Linear Filter Generator (LFSR-32 filtered by 2nd-order ANF function) using an Algebraic SMT attack.",
     description:

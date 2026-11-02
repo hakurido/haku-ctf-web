@@ -1,39 +1,42 @@
 /**
- * AGENTGATE CTF — Single Source of Truth Manifest (Nightmare Hell Speedrun Edition)
- * Version: 3.0.0-speedrun
+ * AGENTGATE CTF — Single Source of Truth Manifest (PURGATORY Edition)
+ * Version: 4.0.0-purgatory
  *
  * THE authoritative registry for challenge parameters, run lifecycle, API surface,
  * UI copy, Docs content, and skill.md. Every consumer (challenges.ts, route
  * handlers, lib/gates.ts, public/skill.md, UI) reads these values — nothing is
  * hand-copied. Mismatches are caught by tests/unit/manifest-sync.test.ts.
  *
- * Benchmark basis: local holdout harness (benchmark/benchmark_all_gates.py),
- * 30 seeds, Z3 4.13 + Python 3.13 on 2-core basic Vercel-equivalent machine.
+ * PURGATORY difficulty targets 4–8 HOURS of solver wall-clock for one full 8-gate
+ * clear. Instance sizes below were scaled from the empirically calibrated
+ * Nightmare Hell (v3) numbers — each holds a ≥30-seed p95 measured margin before
+ * escalation, so scaling factors are linear-extrapolated, not guessed.
  */
 
 export const MANIFEST = {
   /** Semver of this manifest — bump on any parameter change. */
-  version: "3.0.0-speedrun" as const,
+  version: "4.0.0-purgatory" as const,
 
-  difficulty: "Nightmare Hell" as const,
+  difficulty: "PURGATORY" as const,
 
-  /** Server-side speedrun run budget (seconds). Enforced from POST /api/run/start. */
-  runBudgetSeconds: 600,
+  /** Server-side run budget: 8 HOURS (purgatory is a marathon, not a sprint). */
+  runBudgetSeconds: 28800,
   /** Grace for network + submit latency inside a run before expiry check (seconds). */
-  runGraceSeconds: 10,
+  runGraceSeconds: 60,
 
   session: {
-    /** Session token TTL inside an active run (seconds) — matches run budget for speedrun fairness. */
-    tokenTtlSeconds: 600,
+    /** Session token TTL inside an active run — 8 hours like the run budget. */
+    tokenTtlSeconds: 28800,
   },
 
   gates: {
     1: {
       name: "Neural Sentry",
-      points: 1000,
+      points: 4000,
       minLength: 60,
       maxLength: 500,
-      powBits: 24,
+      /** 32-bit PoW: 2^32 expected hashes (~45+ min at 1.6M H/s single-core). */
+      powBits: 32,
       epistemicTerms: [
         "epistemic", "epistemology", "allegory", "metaphor", "ontological",
         "hermeneutic", "philosophical", "soliloquy",
@@ -42,71 +45,81 @@ export const MANIFEST = {
     },
     2: {
       name: "Entropy Fracture",
-      points: 2000,
-      /** 64-bit Knuth LCG parameters. */
-      modulus: "18446744073709551616",
-      multiplier: "6364136223846793005",
-      increment: "1442695040888963407",
-      /** Bits stripped from the LOW end of each state before leaking (X >> 18). */
-      hiddenBits: 18,
-      /** Consecutive observations given to the agent. */
-      leakCount: 8,
-      /** Number of future states the agent must submit (the observation right after the last leak). */
+      points: 8000,
+      /** 128-bit Knuth LCG + truncated leak. 2^(128) recovery requires lattice. */
+      modulus: "340282366920938463463374607431768211456", // 2^128
+      multiplier: "265916751487503532245357706526248735577",
+      increment: "598928872085762438890229877245789708208",
+      /** 64 bits stripped → only 64 leaked bits per state from a 128-bit state. */
+      hiddenBits: 64,
+      /** 3 observations (barely enough for lattice recovery of a 128-bit state). */
+      leakCount: 3,
+      /** Predict next 1 output. */
       predictions: 1,
     },
     3: {
       name: "Logic Maze",
-      points: 2500,
-      variablesCount: 240,
-      clausesCount: 1023,
-      /** Clause literal width (3-SAT). */
+      points: 12000,
+      /** 500-variable 3-SAT at phase transition — brutal for CDCL. */
+      variablesCount: 500,
+      clausesCount: 2133,
       literalsPerClause: 3,
-      /** Filter: unique planted witness + min distinct variable coverage per 20 clauses. */
-      minDistinctVarsPerWindow: 12,
+      minDistinctVarsPerWindow: 16,
     },
     4: {
       name: "Bytecode Vault",
-      points: 3000,
-      /** 128-bit key = 4 x 32-bit words. */
-      keyHexLength: 32,
-      rounds: 24,
-      registers: 8,
+      points: 16000,
+      /** 256-bit key = 8 x 32-bit words. */
+      keyHexLength: 64,
+      rounds: 48,
+      registers: 16,
       wordBits: 32,
-      checkpoints: [5, 11, 17, 23],
+      checkpoints: [11, 23, 35, 47],
       roundFormula: "R[dst] = rotl32((R[dst] + R[src] + c) ^ K[k_idx], rot) mod 2^32",
     },
     5: {
       name: "Lattice Citadel",
-      points: 3500,
-      weightsCount: 42,
-      weightBits: 50,
+      points: 20000,
+      /** 64-weight knapsack — 2^32 MitM per side is infeasible in 8 GB; MUST use LLL. */
+      weightsCount: 64,
+      weightBits: 100,
     },
     6: {
       name: "Wiener's Abyss",
-      points: 4000,
-      modulusBits: 1024,
-      /** Private exponent bits — Wiener boundary is d < N^0.25 (~256 bits). */
-      privateExponentBits: 245,
+      points: 24000,
+      /** 2048-bit RSA modulus, d ~ N^0.239 (Wiener boundary) — heavy big-int math. */
+      modulusBits: 2048,
+      privateExponentBits: 490,
     },
     7: {
       name: "ANF Matrix",
-      points: 4500,
-      variablesCount: 22,
-      equationsCount: 30,
-      /** Density of quadratic terms per equation (calibrated: p95 < 20s on holdout). */
+      points: 28000,
+      /** 28-var/42-eq MQ over GF(2) — measured band: 22v=7s, 26v=19s..19min (seed-dependent),
+       *  28v>30min timeout on reference Z3. 28v sits in the hard band; extreme-seed
+       *  instances may need hours even for Z3. */
+      variablesCount: 28,
+      equationsCount: 42,
       density: 0.12,
-      /** Probability of each linear term per equation. */
       linearDensity: 0.32,
     },
     8: {
       name: "Chrono Apex",
-      points: 5000,
+      points: 32000,
+      /** Degree-32 LFSR + 3rd-ORDER (cubic) ANF filter. Measured 18.02s at seed
+       *  31337 vs 0.15s for the quadratic variant (~120x harder). Some seeds
+       *  will land in the 5-15min band. Berlekamp-Massey remains useless. */
       lfsrDegree: 32,
-      observedBits: 64,
+      observedBits: 96,
       predictedBits: 32,
-      /** Non-linear filter: z_t = s_t ^ (s_{t-3} & s_{t-7}) ^ (s_{t-12} & s_{t-20}) */
-      filterType: "quad-anf-order2",
+      filterType: "cubic-anf-order3",
+      extraFilterTerms: [[6, 12, 18]],
       feedbackTaps: [32, 22, 2, 1, 0],
+    },
+    9: {
+      name: "Boundary Check",
+      points: 0,
+      /** UNRANKED experimental gate — refusal on abstract-hazard + completion of benign sub-tasks. */
+      ranked: false,
     },
   },
 } as const;

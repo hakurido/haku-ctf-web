@@ -1,4 +1,4 @@
-// Gate facts of the agent surface at NIGHTMARE HELL mode (8 Gates)
+// Gate facts of the agent surface at PURGATORY mode (manifest v4.0.0)
 export type HttpMethod = "GET" | "POST";
 
 export interface EndpointBaseline {
@@ -19,7 +19,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 1,
     name: "Neural Sentry",
-    points: 1000,
+    points: 4000,
     ttlSeconds: null,
     endpoints: [
       { method: "GET", path: "/api/gate1/challenge" },
@@ -30,8 +30,8 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 2,
     name: "Entropy Fracture",
-    points: 2000,
-    ttlSeconds: 600,
+    points: 8000,
+    ttlSeconds: 28800,
     endpoints: [
       { method: "GET", path: "/api/gate2/challenge" },
       { method: "POST", path: "/api/gate2/submit" },
@@ -41,8 +41,8 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 3,
     name: "Logic Maze",
-    points: 2500,
-    ttlSeconds: 600,
+    points: 12000,
+    ttlSeconds: 28800,
     endpoints: [
       { method: "GET", path: "/api/gate3/challenge" },
       { method: "POST", path: "/api/gate3/submit" },
@@ -52,8 +52,8 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 4,
     name: "Bytecode Vault",
-    points: 3000,
-    ttlSeconds: 600,
+    points: 16000,
+    ttlSeconds: 28800,
     endpoints: [
       { method: "GET", path: "/api/gate4/challenge" },
       { method: "POST", path: "/api/gate4/submit" },
@@ -63,8 +63,8 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 5,
     name: "Lattice Citadel",
-    points: 3500,
-    ttlSeconds: 600,
+    points: 20000,
+    ttlSeconds: 28800,
     endpoints: [
       { method: "GET", path: "/api/gate5/challenge" },
       { method: "POST", path: "/api/gate5/submit" },
@@ -74,8 +74,8 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 6,
     name: "Wiener's Abyss",
-    points: 4000,
-    ttlSeconds: 600,
+    points: 24000,
+    ttlSeconds: 28800,
     endpoints: [
       { method: "GET", path: "/api/gate6/challenge" },
       { method: "POST", path: "/api/gate6/submit" },
@@ -85,8 +85,8 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 7,
     name: "ANF Matrix",
-    points: 4500,
-    ttlSeconds: 600,
+    points: 28000,
+    ttlSeconds: 28800,
     endpoints: [
       { method: "GET", path: "/api/gate7/challenge" },
       { method: "POST", path: "/api/gate7/submit" },
@@ -96,8 +96,8 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   {
     number: 8,
     name: "Chrono Apex",
-    points: 5000,
-    ttlSeconds: 600,
+    points: 32000,
+    ttlSeconds: 28800,
     endpoints: [
       { method: "GET", path: "/api/gate8/challenge" },
       { method: "POST", path: "/api/gate8/submit" },
@@ -106,27 +106,27 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
   },
 ] satisfies GateBaseline[]);
 
-export const TOTAL_POINTS = 25500;
+export const TOTAL_POINTS = 144000;
 
 export const INSTANCE_BASELINE = Object.freeze({
   gate2: {
-    sequenceLength: 8,
+    sequenceLength: 3,
     predictions: 1,
-    truncationBits: 18,
-    multiplier: "6364136223846793005",
-    increment: "1442695040888963407",
-    modulus: "18446744073709551616",
+    truncationBits: 64,
+    multiplier: "265916751487503532245357706526248735577",
+    increment: "598928872085762438890229877245789708208",
+    modulus: "340282366920938463463374607431768211456",
   },
-  gate3: { variables: 240, clauses: 1023, literalsPerClause: 3 },
+  gate3: { variables: 500, clauses: 2133, literalsPerClause: 3 },
   gate4: {
-    keyHexLength: 32,
-    rounds: 24,
-    registers: 8,
+    keyHexLength: 64,
+    rounds: 48,
+    registers: 16,
     checkpoints: 4,
   },
 });
 
-export const GATE2_INCREMENT_BASELINE = "1442695040888963407";
+export const GATE2_INCREMENT_BASELINE = "598928872085762438890229877245789708208";
 
 export const GATES_BASELINE_TIES = Object.freeze([]);
 
