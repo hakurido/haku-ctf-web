@@ -23,13 +23,13 @@ assert.ok(GATE1_RULES, "GATE1_RULES is exported from lib/gates.ts");
 
 const MANIFEST_FACTS = {
   version: "4.0.0-purgatory",
-  runBudgetSeconds: 28800,
-  runGraceSeconds: 60,
-  tokenTtlSeconds: 28800,
+  runBudgetSeconds: 600,
+  runGraceSeconds: 10,
+  tokenTtlSeconds: 600,
   gatePoints: [4000, 8000, 12000, 16000, 20000, 24000, 28000, 32000] as const,
   gate1: { minLength: 60, maxLength: 500, powBits: 32 },
-  gate2HiddenBits: 64,
-  gate2LeakCount: 3,
+  gate2HiddenBits: 26,
+  gate2LeakCount: 6,
 };
 
 function gateN(n: number) {
@@ -68,13 +68,16 @@ describe("manifest ↔ gates.ts sync (PURGATORY)", () => {
   it("manifest.ts itself declares the PURGATORY parameters", () => {
     const src = readRepoFile("src/lib/manifest.ts");
     assert.ok(src.includes("powBits: 32"));
-    assert.ok(src.includes("hiddenBits: 64"));
-    assert.ok(src.includes("leakCount: 3"));
-    assert.ok(src.includes("runBudgetSeconds: 28800"));
+    assert.ok(src.includes("hiddenBits: 26"));
+    assert.ok(src.includes("leakCount: 6"));
+    assert.ok(src.includes("runBudgetSeconds: 600"));
     assert.ok(src.includes("PURGATORY"));
     assert.ok(src.includes("cubic-anf-order3"));
-    assert.ok(src.includes("variablesCount: 28"));
+    assert.ok(src.includes("variablesCount: 24"));
     assert.ok(src.includes("modulusBits: 2048"));
+    assert.ok(src.includes("weightsCount: 46"));
+    assert.ok(src.includes("variablesCount: 420"));
+    assert.ok(src.includes("keyHexLength: 32"));
   });
 });
 
@@ -93,7 +96,7 @@ describe("manifest ↔ API routes sync (PURGATORY)", () => {
     assert.ok(src.includes("MANIFEST.gates[1]"), "route imports manifest gate 1 config");
   });
 
-  it("run API exists and advertises the manifest budget (8h)", () => {
+  it("run API exists and advertises the manifest budget (10m)", () => {
     const src = readRepoFile("src/app/api/run/route.ts");
     assert.ok(src.includes("MANIFEST.runBudgetSeconds"));
     const runsSrc = readRepoFile("src/lib/runs.ts");
@@ -157,10 +160,10 @@ describe("secret hygiene (no client leaks)", () => {
   });
 });
 
-describe("run lifecycle invariants (8h PURGATORY)", () => {
-  it("run budget is 28800 seconds with 60s grace and session TTL matches budget", () => {
-    assert.equal(MANIFEST_FACTS.runBudgetSeconds, 28800);
-    assert.equal(MANIFEST_FACTS.runGraceSeconds, 60);
+describe("run lifecycle invariants (10m speedrun)", () => {
+  it("run budget is 600 seconds with 10s grace and session TTL matches budget", () => {
+    assert.equal(MANIFEST_FACTS.runBudgetSeconds, 600);
+    assert.equal(MANIFEST_FACTS.runGraceSeconds, 10);
     assert.equal(MANIFEST_FACTS.tokenTtlSeconds, MANIFEST_FACTS.runBudgetSeconds);
   });
 

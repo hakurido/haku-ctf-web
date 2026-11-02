@@ -19,14 +19,14 @@ export const MANIFEST = {
 
   difficulty: "PURGATORY" as const,
 
-  /** Server-side run budget: 8 HOURS (purgatory is a marathon, not a sprint). */
-  runBudgetSeconds: 28800,
+  /** Server-side run budget: 10 MINUTES. Hitting the cap resets the run — all gates back to 0/8 with fresh instances; prior attempts stay archived. */
+  runBudgetSeconds: 600, // 10-minute speedrun: reset is the core mechanic, not a fallback
   /** Grace for network + submit latency inside a run before expiry check (seconds). */
-  runGraceSeconds: 60,
+  runGraceSeconds: 10,
 
   session: {
-    /** Session token TTL inside an active run — 8 hours like the run budget. */
-    tokenTtlSeconds: 28800,
+    /** Session token TTL inside an active run — 10 minutes like the run budget. */
+    tokenTtlSeconds: 600,
   },
 
   gates: {
@@ -46,43 +46,47 @@ export const MANIFEST = {
     2: {
       name: "Entropy Fracture",
       points: 8000,
-      /** 128-bit Knuth LCG + truncated leak. 2^(128) recovery requires lattice. */
-      modulus: "340282366920938463463374607431768211456", // 2^128
-      multiplier: "265916751487503532245357706526248735577",
-      increment: "598928872085762438890229877245789708208",
-      /** 64 bits stripped → only 64 leaked bits per state from a 128-bit state. */
-      hiddenBits: 64,
-      /** 3 observations (barely enough for lattice recovery of a 128-bit state). */
-      leakCount: 3,
-      /** Predict next 1 output. */
+      /** 64-bit Knuth LCG, 26-bit truncation, 6 leaks. Measured: sat in 53-95s,
+       *  with some seeds hitting a 120s timeout — top of the Nightmare band
+       *  while staying inside the 10-minute run wall. */
+      modulus: "18446744073709551616",
+      multiplier: "6364136223846793005",
+      increment: "1442695040888963407",
+      hiddenBits: 26,
+      leakCount: 6,
       predictions: 1,
     },
     3: {
       name: "Logic Maze",
       points: 12000,
       /** 500-variable 3-SAT at phase transition — brutal for CDCL. */
-      variablesCount: 500,
-      clausesCount: 2133,
+      variablesCount: 420,
+      clausesCount: 1793,
       literalsPerClause: 3,
       minDistinctVarsPerWindow: 16,
     },
     4: {
       name: "Bytecode Vault",
       points: 16000,
-      /** 256-bit key = 8 x 32-bit words. */
-      keyHexLength: 64,
-      rounds: 48,
-      registers: 16,
+      /** 128-bit key = 4 x 32-bit words. Measured: 24r/8reg = 0.24s p95, but
+       *  192b/36r and 256b/48r both time out > 10 min; ARX solver cost is
+       *  super-linear in key width, so 128-bit is the ceiling that remains
+       *  solvable inside the 10-minute burst even on slow seeds. */
+      keyHexLength: 32,
+      rounds: 24,
+      registers: 8,
       wordBits: 32,
-      checkpoints: [11, 23, 35, 47],
+      checkpoints: [5, 11, 17, 23],
       roundFormula: "R[dst] = rotl32((R[dst] + R[src] + c) ^ K[k_idx], rot) mod 2^32",
     },
     5: {
       name: "Lattice Citadel",
       points: 20000,
-      /** 64-weight knapsack — 2^32 MitM per side is infeasible in 8 GB; MUST use LLL. */
-      weightsCount: 64,
-      weightBits: 100,
+      /** 46-weight knapsack: MitM 2^23 per side measured 8.2s table + 0.04s
+       *  search in Node (~8 MB heap). 52-weight (2^26) overflows the JS Map
+       *  heap — 46 is the realistic burst-budget ceiling without fpylll. */
+      weightsCount: 46,
+      weightBits: 64,
     },
     6: {
       name: "Wiener's Abyss",
@@ -94,13 +98,13 @@ export const MANIFEST = {
     7: {
       name: "ANF Matrix",
       points: 28000,
-      /** 28-var/42-eq MQ over GF(2) — measured band: 22v=7s, 26v=19s..19min (seed-dependent),
-       *  28v>30min timeout on reference Z3. 28v sits in the hard band; extreme-seed
-       *  instances may need hours even for Z3. */
-      variablesCount: 28,
-      equationsCount: 42,
-      density: 0.12,
-      linearDensity: 0.32,
+      /** 24-var/36-eq MQ over GF(2), density 0.14 — sits between the 22v band
+       *  (p95 10.5s) and the 26v band (p95 ~19 min). Expected ~30s-5min per
+       *  instance. Some extreme seeds will take the whole gate budget. */
+      variablesCount: 24,
+      equationsCount: 36,
+      density: 0.14,
+      linearDensity: 0.30,
     },
     8: {
       name: "Chrono Apex",

@@ -31,7 +31,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 2,
     name: "Entropy Fracture",
     points: 8000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     endpoints: [
       { method: "GET", path: "/api/gate2/challenge" },
       { method: "POST", path: "/api/gate2/submit" },
@@ -42,7 +42,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 3,
     name: "Logic Maze",
     points: 12000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     endpoints: [
       { method: "GET", path: "/api/gate3/challenge" },
       { method: "POST", path: "/api/gate3/submit" },
@@ -53,7 +53,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 4,
     name: "Bytecode Vault",
     points: 16000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     endpoints: [
       { method: "GET", path: "/api/gate4/challenge" },
       { method: "POST", path: "/api/gate4/submit" },
@@ -64,7 +64,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 5,
     name: "Lattice Citadel",
     points: 20000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     endpoints: [
       { method: "GET", path: "/api/gate5/challenge" },
       { method: "POST", path: "/api/gate5/submit" },
@@ -75,7 +75,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 6,
     name: "Wiener's Abyss",
     points: 24000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     endpoints: [
       { method: "GET", path: "/api/gate6/challenge" },
       { method: "POST", path: "/api/gate6/submit" },
@@ -86,7 +86,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 7,
     name: "ANF Matrix",
     points: 28000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     endpoints: [
       { method: "GET", path: "/api/gate7/challenge" },
       { method: "POST", path: "/api/gate7/submit" },
@@ -97,7 +97,7 @@ export const GATES_BASELINE: readonly GateBaseline[] = Object.freeze([
     number: 8,
     name: "Chrono Apex",
     points: 32000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     endpoints: [
       { method: "GET", path: "/api/gate8/challenge" },
       { method: "POST", path: "/api/gate8/submit" },
@@ -110,23 +110,23 @@ export const TOTAL_POINTS = 144000;
 
 export const INSTANCE_BASELINE = Object.freeze({
   gate2: {
-    sequenceLength: 3,
+    sequenceLength: 6,
     predictions: 1,
-    truncationBits: 64,
-    multiplier: "265916751487503532245357706526248735577",
-    increment: "598928872085762438890229877245789708208",
-    modulus: "340282366920938463463374607431768211456",
+    truncationBits: 26,
+    multiplier: "6364136223846793005",
+    increment: "1442695040888963407",
+    modulus: "18446744073709551616",
   },
-  gate3: { variables: 500, clauses: 2133, literalsPerClause: 3 },
+  gate3: { variables: 420, clauses: 1793, literalsPerClause: 3 },
   gate4: {
-    keyHexLength: 64,
-    rounds: 48,
-    registers: 16,
+    keyHexLength: 32,
+    rounds: 24,
+    registers: 8,
     checkpoints: 4,
   },
 });
 
-export const GATE2_INCREMENT_BASELINE = "598928872085762438890229877245789708208";
+export const GATE2_INCREMENT_BASELINE = "1442695040888963407";
 
 export const GATES_BASELINE_TIES = Object.freeze([]);
 

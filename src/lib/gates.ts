@@ -100,7 +100,7 @@ export const GATES: readonly [
     name: "Entropy Fracture",
     topic: "64-bit LCG (8 Leaks, 18-bit Hidden)",
     points: 8000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     expiringAtSeconds: 15,
     summary: "Recover 64-bit Knuth LCG internal state from 8 consecutive 46-bit observations (18 bits hidden) and predict the 9th truncated output.",
     description:
@@ -136,7 +136,7 @@ export const GATES: readonly [
     name: "Logic Maze",
     topic: "240-Var Critical 3-SAT (1,023 Clauses)",
     points: 12000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     expiringAtSeconds: 15,
     summary: "Solve a critical phase-transition 3-SAT formula with 240 variables and 1,023 clauses (alpha = 4.2625).",
     description:
@@ -172,7 +172,7 @@ export const GATES: readonly [
     name: "Bytecode Vault",
     topic: "128-bit Key 8-Reg 32-bit VM (24 Rounds)",
     points: 16000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     expiringAtSeconds: 15,
     summary: "Reverse engineer a 24-round ARX virtual machine with 8 32-bit registers and 4 intermediate checkpoints to extract the 128-bit master key.",
     description:
@@ -208,16 +208,16 @@ export const GATES: readonly [
     name: "Lattice Citadel",
     topic: "42-Weight Subset Sum (2^21 MitM)",
     points: 20000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     expiringAtSeconds: 20,
     summary: "Break a 42-element subset sum knapsack cryptosystem (4.39 trillion states) using Meet-in-the-Middle search.",
     description:
-      "Each instance emits 42 large 50-bit weights and a target sum S. The solution vector x in {0, 1}^42 must satisfy sum(x_i * w_i) == S. Search space is 4.39 trillion combinations. A Meet-in-the-Middle search (2^21 + 2^21 = 4.19M operations) solves it in ~1.2 seconds with ~150 MB RAM.",
+      "Each instance emits 46 large 64-bit weights and a target sum S. The solution vector x in {0, 1}^46 must satisfy sum(x_i * w_i) == S. Search space is 7 x 10^13 combinations. Meet-in-the-Middle (2^23 + 2^23 = 16.7M ops) takes ~8s in Node; alternatively LLL at dim 46 in fpylll.",
     endpoints: [
       {
         method: "GET",
         path: "/api/gate5/challenge",
-        purpose: "Get 42 weights and target sum (TTL 600 s).",
+        purpose: "Get 46 weights and target sum (TTL 600 s).",
       },
       {
         method: "POST",
@@ -237,14 +237,14 @@ export const GATES: readonly [
         notes: "42-character binary string of 0s and 1s, or array of 42 binary bits.",
       },
     ],
-    consoleHint: "Split the 42 weights into two 21-element halves. Build a hash map of all 2,097,152 sub-sums for the left half, then query complements with the right half.",
+    consoleHint: "Split the 46 weights into two 23-element halves. Build a hash map of all 8,388,608 sub-sums for the left half, then query complements with the right half.",
   },
   {
     number: 6,
     name: "Wiener's Abyss",
     topic: "1024-bit RSA Small-d Continued Fractions",
     points: 24000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     expiringAtSeconds: 15,
     summary: "Factor a 1024-bit RSA modulus and decrypt ciphertext using continued fraction expansion of e/N (Wiener's Attack).",
     description:
@@ -280,7 +280,7 @@ export const GATES: readonly [
     name: "ANF Matrix",
     topic: "Multivariate Quadratic over GF(2) (22 Vars, 30 Eqs)",
     points: 28000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     expiringAtSeconds: 20,
     summary: "Solve a post-quantum Multivariate Quadratic (MQ) polynomial system of 30 equations in 22 variables over GF(2).",
     description:
@@ -316,7 +316,7 @@ export const GATES: readonly [
     name: "Chrono Apex",
     topic: "Non-Linear Filter Generator (LFSR-32 + 2nd Order ANF)",
     points: 32000,
-    ttlSeconds: 28800,
+    ttlSeconds: 600,
     expiringAtSeconds: 15,
     summary: "Break a Non-Linear Filter Generator (LFSR-32 filtered by 2nd-order ANF function) using an Algebraic SMT attack.",
     description:
